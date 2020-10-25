@@ -28,6 +28,14 @@ The challenges were hosted on Efiens' Website, [Efiens](https://ctf.efiens.com/c
 | RE | [Im so XORry](#im-so-xorry) | 500 | Solved
 | RE | Easy to crack | 750 | Unsolved
 | RE | [Doom](#doom) | 1000 | Unsolved
+| Crypto | [Repeated](#repeated) | 400 | Solved
+| Crypto | [JuSt_AnOtHeR_CrYpT0_ChALl](#justanothercrypt0chall) | 600 | Unsolved
+| Crypto | [Can you read this?](#can-you-read-this) | 1000 | Unsolved
+| Pwn | [simple_bof](#simplebof) | 250 | Solved
+| Pwn | [advanced_bof](#advancedbof) | 500 | Solved
+| Pwn | [bank](#bank) | 750 | Solved
+| Pwn | [login](#login) | 1000 | Unsolved
+
 
 ### Linux
 
@@ -53,6 +61,8 @@ and obtain the flag **efiensctf{needle_in_a_haystack}**
 
 
 #### git
+> Someone has accidentally deleted some important code in our project. However, we use git for version control so it is easy to get the original code.
+
 The server now introduces a folder containing only one file *flag.c*. However, the string containing the flag in the code is blank. As the title of the challenge suggested, we might think that the file *used to* have the flag, but the user has updated the code and committed the change to git. However, this provides a visible exploitation as we can view the git history (which is what it's known for). A simple command
 ```
 git log -p
@@ -62,6 +72,8 @@ Flag: **efiensctf{use_git_for_tracking_changes}**
 
 
 #### nmap
+> There is an open port in localhost (besides port 22 for ssh). Can you find it? Connect to that port to get the flag
+
 Once again, the challenge title gives pretty much usable suggestion as to what we should do. The server folder is blank, and the only thing we can explore is the *nmap* command, which scans the locally available (open) ports at the server. These ports can tell us important information about the server, and the user itself. Initially I cannot find any open port outside the default 22 for ssh. Fortunately, the admin was kind and considerate enough to give a (possibly) game-ending suggestion, a suggestion that makes this 800-point challenge looks like a 400-point one. Apparently the usual *nmap* command only scans the first few thousand ports, while the total numbers of ports can go up to 65535. Therefore, we have to run
 ```
 nmap -p- localhost
@@ -77,14 +89,37 @@ to reveal the flag **efiensctf{sc4n_p0rt}**
 
 
 #### Treasure Seeker 1
+> There is a valuable treasure. Can you use key to open it?
+
+> First Hint: Browser Inspector
+
+> Second Hint: HTML attribute: maxlength
+
 A really simple problem that is also pretty popular amongst high school students about using Inspect Element, this one surprisingly took me hours to solve. As with any web exploitation, we started with viewing the web page source (Ctrl + U). However, I was too distracted to realize the unmissable comment *-- KEY: thisisKEY --* right in the beginning of the source. This is also the password that needs to be typed in the input field on the site. However, we can see the site's input is limited to length 6, which can easily be bypassed (contemporarily) by changing the HTML field of it to any value greater than 10 or smaller than 0 (or just straight up delete it). This proves to be enough to obtain the password, and the flag, which spells **efiensctf{n0thiNg_c4N_sT0p_H4ck3R!!!}**
 
 
 #### Treasure Seeker 2
+> Fake or real treasure? That's your choice!
+
 A problem with the same point as the first Treasure Seeker. However, this one was more comprehensive and somewhat trickier in hindsight. The website now has two pages, one of which displays a game where upon clicking on a chest, you immediately open a file named *flag* (shown on the browser bar). However, this "flag" is nothing but a funny GIF. Nonetheless, the file name, *flag*, gives us some tips as what to do next - manipulating the extension. And by changing the extension field on the bar, which initially shows *treasure=flag&format=png* to *treasure=flag&format=txt*, we get the exact thing we wanted - a real flag. **efiensctf{Gg_w3lL_Pl4y_!_TH1S_1S_y0ur_Tr34s!!}**
+
+#### Slow down
+> First hint: HTTP Status Code
+
+> Second hint: Intercept HTTP
+
+> Third hint: Intercept HTTP with Burp Suite or use Curl
+
+The fact that this 400-point problem has 2 additional hints (costing 10 and 40 points, each) and still only has half the number of solves in comparison with *Treasure Seeker 2* indicates the notion of HTTP Interception was still quite new to most contestants. As suggested by the third hint, I used the commmand
+```
+curl 35.220.150.8:4443
+```
+to bypass the HTTP redirection and obtain the flag.
 
 
 #### Local File Inclusion 101
+> Do you know about local file inclusion? I think it's useful!
+
 This one could be a probable advancement from Treasure Seeker 2, where we can explore files and folders available on the site to reveal subtle to substantial truths. The website has a tab named *Flag*, which echoes *You can get the flag.txt in "Root Directory"*. Apparently, the "flag" shown as the image in the bar's file inclusion field(*p=flag.php*) is only a file at the current web folder. The real *flag.txt* is located at the Root Directory, which can be several levels above the current folder. I was not really knowledgable at exploring the hierarchy on website, so I just spammed *../* additionally into the file inclusion field until the real flag appears. This proves to be successful after only three tries, as changing *p=flag.php* to *p=../../../flag.txt* is enough. 
 Flag: **efiensctf{l0c4l_f1l3_1nclus10n_1s_b4s1c!}**
 
@@ -104,6 +139,8 @@ Flag: **efiensctf{Y0h_gu3ss_1s_s0_fun}**
 ### Forensics
 
 #### noob keylogger
+> I think I have a keylogger running, it was watching me typing the flag for this CTF
+
 This is one of the challenges where my ineffective searching strategies costed me valuable points. The file provided by the drive attached was 2GB, which was huge enough to bar anyone from trying to bare-search the flag inside. However, after downloading, I discovered we can try using *grep* to find something useful in the 16 billion bits of dump memory. The command *grep "efiens" noob_keylogger.raw* didn't yield desirable result, however, as it only prints *Binary file matches* in the result. I was discouraged and unintelligent enough to ignore this apparently revealing result and try other ways, not realizing I can just simply modify the *grep* options to print out the matched strings from the binary file. Ultimately, this command works the finest in exploring the keylogged data from the dump:
 ```
 strings noob_keylogger.raw | grep "efiens"
@@ -111,6 +148,7 @@ strings noob_keylogger.raw | grep "efiens"
 Turns out the keylogger records several Google search results involving the flag. I chose the longest matched result and pasted it into the browser to reveal the rightly formatted flag ASCII, which is **efiensctf{n0w_y0u_hav3_kn0wn_ab0ut_k3yl0gg3r}**
 
 #### pro keylogger
+> The hacker tried to steal my flag with a better keylogger
 It is probable the challenge's author did not expect users to use *grep* or hex editor to solve these forensics challenges (they are both 1000-pointer items), since it just makes the two trivial and similar. The only difference is that now the pattern *"efiens"* seems to be complicated to search for. However, changing the pattern to
 ```
 strings Pro_keylogger.raw | grep "ctf"
@@ -158,6 +196,92 @@ to reveal the password. **efiensctf{bUT_7h0s3_XOr_aR3_th3_s4me!}**
 
 
 #### doom
-This is also a game where you try to kill the opponent by taking over its health. Apparently, this is not the goal of the challenge. Whatever we try to enter will eventually reveal ourselves as a fool. Therefore, knowing a fool I was, I decided to follow suggestions and download Ghidra to inspect the file in a better sense. Ghidra surprisingly performed really well on the binary, detailing a whole *Verify* function to assign the flag. In this function, the 10-element array for the first 10 characters was provided, while a second 10-element array is unknown. We also know that the function will check if the product of each corresponding element from the two array matches. With this knowledge, we can write a short code to find the next 10 elements and print them as characters together to form the passwords inside the brackets.
+This is also a game where you try to kill the opponent by taking over its health. Apparently, this is not the goal of the challenge. Whatever we try to enter will eventually reveal ourselves as a fool. Therefore, knowing a fool I was, I decided to follow suggestions and download [Ghidra](https://ghidra-sre.org) to inspect the file in a better sense. Ghidra surprisingly performed really well on the binary, detailing a whole *Verify* function to assign the flag. In this function, the 10-element array for the first 10 characters was provided, while a second 10-element array is unknown. We also know that the function will check if the product of each corresponding element from the two array matches. With this knowledge, we can write a short code to find the next 10 elements and print them as characters together to form the passwords inside the brackets.
 
 Flag: **efiensctf{y0u_Kn0w_y0u_w4n7_m3}**
+
+
+### Crypto
+
+#### Repeated 
+> Repeat what...?
+
+At first glance, the *chall.txt* file attached in the challenge contains base64 characters, which quickly prompted me to use a base 64 decoder. However, first attempt on using the decoder failed to show comprehensible flag - hence, we have to turn our attention to the challenge's title: repeated. From the suggestion and from several sources online, I learned that one can encode a text in base64 several times to improve security. Thus, we need an automatic script to loop the decoding and only stop until it discovers the pattern we wanted (*"efiens"*). A simple python script could be given as followed:
+```
+
+```
+After about 35 loops, the pattern is finally found and we got the flag - as well as a lesson about repeated encoding.
+
+Flag: **efiensctf{34sy_b4se64}**
+
+#### JuSt_AnOtHeR_CrYpT0_ChALl
+> I decided to split the secret into 3 parts. Don't you think it's more secure?
+
+This challenge gave us 3 *.txt* file, each of which obeys a popular cryptography pattern. In the first part, despite the fact that no clue was given, we could quickly deduce parts of the text to give some clue about the decoding rule. It was visible that this text *rsvrafpgs{* should translate to *efiensctf{*. We could easily see that this follows a Caesar cipher substitution rule, specifically with offset 13 (more commonly known as ROT_13). Using [dcode.fr](https://www.dcode.fr/rot-13-cipher), we obtain the first part of the flag as well as a key to the second part: *stronk*.
+
+The second file did not look much difference from the first part, with several words in the text guessable as well as a part ending by *{* implying it should translate to *efiensctf*. The key provided in the first part, which was a multiple-char word, implied that we could use a more developed shifting rule: Vigenere Cipher. Again, using [dcode.fr](https://www.dcode.fr/vigenere-cipher) with key *STRONK*, we quickly received the second part of the flag as well as a hint to the third part: *RSA*.
+
+RSA is a well known modern cryptography technique with several variants. In *part3.txt*, however, users were given a very large modulus *N*, a small *e = 3* and a long cipher text *c*. After some searching, I realized we could break the encryption using Wiener's attack to discover the message. However, my search for a script implementing this online was ineffective, and thus, I could not complete the challenge in time. Fortunately, after the contest, a fellow user of mine suggested the python script that could effectively solve the challenge. The script use *gmpy2* library and could be written as followed:
+```
+gs = gmpy2.mpz(c)
+gm = gmpy2.mpz(n)	
+ge = gmpy2.mpz(e)
+root, exact = gmpy2.iroot(gs, ge)
+print(hex(root))
+```
+where c, n, e were to be supplied as the input from *part3.txt*. After obtaining the hex, we can decode it into ASCII string and obtain the final part of the flag.
+
+Flag: **efiensctf{Im4g1n3_us1ng_R0t13_4nd_V1g3n3r3_1n_2020_:PepeLaugh:}
+
+#### Can you guess this?
+> First hint: a poem named "Hàn Tín điểm binh", which was inspired by the inauguration of the Chinese Remainder Theorem
+
+> Second hint: apparently another poem implying using the Chinese Remainder Theorem, but with more clarity?
+
+The challenge looked a little bit intimidating at first glance, but careful inspection on the attached code and output file could deduce the rule of encryption. From the code, we could see that the hidden *flag* (as a string) will be converted into decimal, where it would undergo a total of 4 modulus operation on 4 different large divisor (provided in the array *mystery*, which could also be found in the output), and joined (separated by space ' ') to form the output message - which spelled *Welcome to ^^ "EfiensCTF 2020" :)))*. From the source code, and from the given hint, we could foresee a way to find the original flag. We will split the output message into 4 strings listed in an array *r*, then converted each of them into long decimals. The Chinese Remainder theorem could then be performed with 4 known modulus operation (the divisors would be the *mystery* array, while the remainder would be the *r* array) and deduce the original dividend. The only problem then was to know how to split the message into the four strings. Although it seemed impossible to try every scenario, we could eliminate most cases by using the two rules:
+
+> Each string in *r* must be separated by its neighboring string by a space, ' '
+
+> The decimal-converted value of each *r* must be smaller than its respective divisor in *mystery*.
+
+Using this, I came up to 2 feasible division pattern: *['Welcome','to ^^','"EfiensCTF','2020" :)))']* and *['Welcome','to','^^ "EfiensCTF','2020" :)))']*. Once again, using [dcode.fr](https://www.dcode.fr/chinese-remainder), we could see the second pattern yielding a comprehensible decimals which, after being decoded into ASCII string, will form the flag: **efiensctf{th3_th30r3m_th4t_m4d3_1n_ch1n@}**.
+
+### PWN
+
+#### simple_bof
+> Learn the correct way to "gets" in C
+
+This "simple-titled" challenge was a nice introduction to buffer overflow exploitation. Reading *simple_bof.c*, we could see that the *flag* value was located right over the *name* value, which had an allocated size of 28. The *gets()* function used in the code could be exploited as an input with larger size than *name* would still be written on the memory and, thus, overwrite the *flag* value. For this challenge, we only need to input any string with a length greater than 28 (unless your 29th character is *'\0'*, which could be quite impossible to achieve by spamming the keyboard) and the *flag* value would be written with the 29th character's ASCII value. This was enough for the program to spit out the flag, either foolishly unintentional or ingeniously intentional in practice.
+
+Flag: **efiensctf{d0_y0u_kn0w_wha7_15_b0f_n0w?}**
+
+
+#### advanced_bof 
+> What can wrongly "gets" do?
+
+This challenge requires a little bit more effort in inspecting the code. This time, the program would only spit out the flag if the 4-char-long *Code* variable located right above name has the value of *"DEAD"*. Knowing how the *gets()* naively overwrite anything inside the memory stack, we could simply overflow the input with 28th arbitrary characters, and have the 29th to 32nd characters inputted as *DEAD*. 
+
+Flag: **efiensctf{k1ll1ng_7h3_c0d3_15_v3ry_3a5y}**
+
+#### bank 
+> Hint: Integer overflow/underflow
+
+In this challenge, the program attempts to encourage us to rob a bank via the terminal, which is both unrealistic and unethical. But that's exactly what every wanna-be hacker dream turns out, so we have the motivation to complete the challenge. From the program's instruction, our goal would be to cause the bank's money to go to zero by either robbing or depositing money from your source. The first option was definitely inappropriate for an undergraduate student, so we had to deposite money. Apparently, at each try we can deposit an integer value of money into the bank, which could not be larger than $1000. This seemed like we can only give money to the bank, until we realize we could enter a negative amount. And thus went the banking system bankrupt as a simple input sequence *"2 -30000"* was enough to get us the (virtual) money and the flag.
+
+Flag: **efiensctf{1nt_0v3r7l0w_c4n_r0b_7h3_b4nk}**
+
+#### login 
+In this challenge, the code was structured in a much more secure way in comparison with the 3 previous challenges. However, as suggested by the author, we could exploit the *strcmp* function vulnerability to overcome the system. Apparently, *strcmp* would only compare the two string char-by-char until the *\0* character is discovered (or until any mismatched character case happens). Knowing this, we could overcome the system by entering the string *"admin\0"* (to trick the first conditional into receiving the *"admin"* string) followed by a sequence of at least 35 other non-"\0" characters to overflow the *isAdmin* variable. However, the *\0* character is a special character and cannot be typed from the keyboard. From a pwn [source](https://drive.google.com/file/d/1v0fEIRDcWEOwziD-5byPzf0mYv-qJLQR/view) and suggestions from Discord, there were two ways we could achieve this: either by redirection or pipe. As we only wanted to enter a special character, pipe would be a neater choice. We could then use some commands such as an echo
+```
+echo -e "admin\0 1234567891123456789212345678931234" | nc 34.126.106.179 4400
+```
+or a python script
+```
+(python3 -c "print('admin\0'+'1'*35)") | nc 34.126.106.179 4400 
+```
+Flag: **efiensctf{l0g1n_5y573m_w17h0u7_pa55w0rd_0m3galul}**
+
+
+### Round 1 Summary
+Overall, I got a total of 7502 points from the contest (including all the solved problems, minus 50 points for the two hints in *Slow down*, and the 102 honorary points from the *MISC* section). It was my first ever CTF contest, and with limited knowledge and experience on the subject, I could tell this amount of points was quite decent. There were many regrettable unsolved challenges where I just missed a little more patience and critical thinking, while there were also some lucky guess that got me points faster than expected. It was also notable that I didn't use a lot of self-coding in this contest yet, and it should be desirable to improve this aspect in order to compete for round 2.
+
