@@ -195,9 +195,16 @@ Flag: **efiensctf{y0u_Kn0w_y0u_w4n7_m3}**
 ### Repeated 
 At first glance, the *chall.txt* file attached in the challenge contains base64 characters, which quickly prompted me to use a base 64 decoder. However, first attempt on using the decoder failed to show comprehensible flag - hence, we have to turn our attention to the challenge's title: repeated. From the suggestion and from several sources online, I learned that one can encode a text in base64 several times to improve security. Thus, we need an automatic script to loop the decoding and only stop until it discovers the pattern we wanted (*"efiens"*). A simple python script could be given as followed:
 ```
+import os, sys
+import base64
+f = open(os.path.join(sys.path[0], 'chall.txt'), 'r')
+code = f.read()
+while("efiens" not in code):
+  code = base64.b64decode(code).decode('ascii')
+print(code)   
 
 ```
-After about 35 loops, the pattern is finally found and we got the flag - as well as a lesson about repeated encoding.
+After about 34 loops, the pattern is finally found and we got the flag - as well as a lesson about repeated encoding.
 
 Flag: **efiensctf{34sy_b4se64}**
 
