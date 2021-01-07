@@ -22,8 +22,8 @@ The following tables lists out the challenges I solved during the contest time. 
 | Web     | [Tiểu cường học Nodejs](#tiểu-cường-học-nodejs) |
 | Web     | [Rapper hub](#rapper-hub) |
 | Web     | [Trust bank is back](#trust-bank-is-back) |
-| RE      | [Single Byte](#single-byte) |
 | RE      | [Easy MIPS](#easy-mips)     |
+| RE      | [Single Byte](#single-byte) |
 | Pwn     | [Lottery](#lottery)   |
 | Pwn     | [Luck](#luck)         |
 | Pwn     | [ROP](#rop)           |
@@ -323,9 +323,9 @@ blob ^ B    = (B & C) ^ (C | D) ^ B ^ C ^ D
             = (B & C) ^ (C & D)
 ```
 
-> Now, considering `M = (B & C) ^ (C & D)`, what is the expected Hamming weight of this number? By some truth-table working out, it is figurable that at each bit position `i`, `M[i]` is one iff `(B, C, D) = (1, 0, 1) or (B, C, D) = (0, 1, 0)`. This makes 2 combinations out of `2**3 = 8` possible combinations of `(B, C, D)`. Hence, each bit of `M` will have 25% of being one, or its Hamming weight will be `0.25*500` - a considerably lower value in comparison with `0.5*500`.
+> Now, considering `M = (B & C) ^ (C & D)`, what is the expected Hamming weight of this number? By some truth-table working out, it is figurable that at each bit position `i`, `M[i] = 1  <=>  (B[i], C[i], D[i]) = (1, 0, 1) | (B[i], C[i], D[i]) = (0, 1, 0)`. This makes 2 combinations out of `2**3 = 8` possible combinations of `(B, C, D)`. Hence, each bit of `M` will have 25% of being `1`, or its expected Hamming weight will be `0.25*500` - a considerably lower value in comparison with `0.5*500`.
 
-> The same principle applies to `D`, although with `C`, there is still 4 out of 8 possible combinations and the Hamming weight is still the same as XORing with any other random number. 
+> The same principle applies to `D`. However with `C`, there is still 4 out of 8 possible combinations and the Hamming weight is still the same as XORing with any other random number. 
 
 Using this information, we can easily find `B` and `D` 
 
@@ -366,13 +366,13 @@ for i in range(256):
 
 Flag: `EFIENSCTF{Kowalski_Analy5isss!!}`
 
-You can also view the bruteforce alternative (attempted after the onsite contest) [here](#./crypto/fourtimepad/chall.py)
+You can also view the bruteforce alternative (attempted after the onsite contest) [here](./crypto/fourtimepad/ftp_sol_brute.py)
 
 # Cave of Wonder
 
-> URL: [link](#http://128.199.177.181:4442/)
+> URL: [link](http://128.199.177.181:4442/)
 
-Upon visiting the website, an authentication service can be seen which promps user to enter username and password. If we enter any arbitrary input and press LOGIN, there will be a browser alert box popped up, saying that we are not the one. The site was not re-rendered, instead it just prompts the box immediately using Chrome's alert component. This means the input checking is performed by the client side (possibly using Javascript), not the server side as usual. This may prove to be dangerous as client side rendering can be easily viewed by inspecting the browser - thus why service on the client side is usually view support and constraint checking, instead of *working with password like a boss*. 
+Upon visiting the website, an authentication service can be seen which promps user to enter username and password. If we enter any arbitrary input and press LOGIN, there will be a browser alert box popped up, saying that we are not the one. The site was not re-rendered, instead it just prompts the box immediately using Chrome's alert component. This means the input checking is performed by the client side (possibly using Javascript), not the server side as usual. This may prove to be dangerous as client side rendering can be easily viewed by inspecting the browser - thus why service on the client side is usually for view support and constraint checking, instead of *working with password like a boss*. 
 
 ![cave](./img/cave.png)
 
@@ -425,7 +425,7 @@ Flag: `efiensctf{4l@dd1n_M1ght_@ls0_b3_4_H4ck3r.}`
 
 # Tiểu Cường học Nodejs  
 
-> URL: [link](#http://128.199.177.181:4441/index.html)
+> URL: [link](http://128.199.177.181:4441/index.html)
 
 > Hint 1: *dot dot dash* and *don't use a browser*
 
@@ -444,7 +444,7 @@ Flag: `efiensctf{Remembering_Understanding_Applying_Analyzing_Evaluating_Creatin
 
 # Rapper Hub
 
-> URL: [link](#http://128.199.177.181:4444/)
+> URL: [link](http://128.199.177.181:4444/)
 
 The website displays a list of some local dankest rappers, which we can view in detail by clicking on the magnifying glass at each item.
 
@@ -456,7 +456,7 @@ The item view link is detailed as *http://128.199.177.181:4444/info.php?id=1*. T
 - Spaces (URL encoded as `%20`).
 - Sensitive non-alphabetic non-numeric character, like `,`, `'`, and `/`.
 
-For my injection, I need to use *select*, *union*, *join*, *from* commands, space characters, and `,` (in `select 1, 2 from A ...`), `'` (in `where table_name = 'abc'`) characters. The plan to bypass each filter scheme is as followed:
+For my injection, I need to use *select*, *union*, *join*, *from* commands, space characters, and `,` (in `select 1, 2 from A ...`), `'` (in `where table_name = 'abc'`). The plan to bypass each filter scheme is as followed:
 
 - Since the SQL query command check is case-sensitive, just replace *select* with *sElEcT* or something similar. Apply to other commands.
 - Replace space with alternative space-equivalent URL encode characters, like `%0b` or `%0c`.
@@ -485,12 +485,15 @@ We are now ready to test our injection. There are 3 main queries we need to perf
 ```
 0 union select * from (select 1)a join (select 2)b join (select table_name from information_schema.tables where table_schema=database())c#
 ```
-![rapper2](#./img/rapperhub2.png)
+![rapper2](./img/rapperhub2.png)
 
+As revealed in the description now, the table name is `R4pp3r`.
 2. Get the column name. As indicated before, we shall list out all column names in our database and view which column name is suspicious. The prepend query is as followed
 ```
 0 union select * from (select 1)a join (select 2)b join (select group_concat(column_name) from information_schema.columns where length(table_name)=6)c#
 ```
+
+![rapper3](./img/rapperhub3.png)
 The column name with the flag should be the last listed column, `s3rcur3_fl4g`.
 
 3. Get the flag. This is simply performed by using the query:
@@ -500,7 +503,162 @@ The column name with the flag should be the last listed column, `s3rcur3_fl4g`.
 
 Flag: `efiensctf{Nice_try._You_are_also_talented_rapper!}`
 
-For an automated script to perform the bypass and request, see [rapper_sol.py](./web/rapperhub/rapper_sol.py)
+For an automated script to perform the bypass and request, see [rapper_sol.py](./web/rapper_hub/rapper_sol.py)
 
+# Trust bank is back
 
+> URL:  [link](http://128.199.177.181:4443/)
 
+> Hint 1: Logical bug!
+
+> Hint 2: Is being fixed === not working? Guess how the developer implemented OTP verification.
+
+The website we are presented is a nice bank account registration / authentication service. Upon discovering around, we can see there are basically 4 actions, corresponding with 4 `POST` request *action* headers:
+
+- */signup*: Register an account into the bank's database. Required fields are: *name*, *username* (unique, hence making an `admin` account is not allowed), *phonenumber* (string of numbers). Upon registration, the app generate a password (first layer) and a [Google Authenticator](https://www.authenticatorapi.com/) OTP QR Code. 
+
+![trust1](./img/trust1.png)
+
+In order to view our OTP code, download [the app](https://play.google.com/store/apps/details?id=com.google.android.apps.authenticator2&hl=en&gl=US) which is available in both IOS and Android. Then scan the displayed QR code and your real-time 6-digit OTP verification will appear on the phone screen, regenerated every 30 seconds.
+
+![trust2](./img/trust2.png)
+
+- */login*: Login into the app by inputing first layer authentication. This `POST` request requires matching *username* and *password* field, as displayed during the registration process.
+
+- */otp*: This is actually a the expanded version of */login* request. The screen for OTP only displays an input field for our 6-digit OTP code, but the `POST` request also includes *username*, *password*, as well as *phonenumber* taken from the previous step (the phone number is searched in the database on username). Moreover, the request also includes an *otp* field, which takes our input on the screen. This means */otp* will again check the matching firstlayer of *username - password*, and the secondlayer of *otp*.
+
+- */resetpassword*: This is the hidden *being fixed* field mentioned in the hint. We can see that this could be an option since upon inspecting the Login page, this is a commented out HTML code that is expected to work sooner or later. However, first attempts to POST with this action always lead to an error page, indicating this feature is *truly* being fixed. Viewing the error message, we can also deduce the request requires *username*, *phonenumber* and *otp* to be included.
+
+Apparently, our goal is to login as `admin` username to view flag. Attempts with our signed up username only reveals a fake flag.
+
+This was the challenge I stumbled the most to solve, due to its many unexpected and strange behaviours. At first, I thought the logical bug is that the */otp* request assumes user has passed the first layer of *username - password* checking, and hence we could send a request with our OTP code but modify *username* into `admin`. However, this proved to be wrong since */otp* actually rechecks *username - password* again (then why the first login screen?), then it will check for matching OTP. 
+
+After that, I tried to analyze the second hint - which obviously talks about */resetpassword* being fixed feature. The request does not require *password*, which could be exploitable - we could try making *username* `admin` and bruteforce the OTP. However, this looks soon inappropriate and desperate as the resulting site always display *Invalid OTP* message - plus, we cannot actually bruteforce the requests that fast.
+
+Only after a while and some help did I realize the logical error here: *the OTP checking part uses **phonenumber** to fetch user record and pair with our supplied OTP, not **username***. Hence, the *username* / *password* field pair and the *otp* / *phonenumber* field pair are completely independent from each other. In other words, it is possible to make the supposed 2-factor authentication check each factor for a different account. This logical error is simply to naive to even bear in mind.
+
+With this knowledge in mind, it is easy to craft our multimillion plan to break into the web service:
+1. */signup* with some made up name, username and phonenumber. Note down the *phonenumber* and then the OTP Code displayed after registration. 
+2. */resetpassword* with the following fields: *username = **admin***, *phonenumber = $your_signup_phonenumber$*, and *otp = $your_signup_otp*. This can be done either by modifying a Burp request from the login site or just by modifying the HTML element on the browser.
+
+![trust3](./img/trust3.png)
+
+In the above screenshot, two new fieldsets were added to make a valid request for */resetpassword*: *phonenumber* and *otp*. Note that the OTP code should be updated (since it will be regenerated every 30 seconds), so get your timing right in this field.
+
+After sending the request, the site will use our *phonenumber* and *otp* to verify the user. However, it will use our supplied *username* to reset the password. So the displayed new password is actually for `admin`, not for the user associated with the supplied *phonenumber*.
+
+![trust4](./img/trust4.png)
+
+Yes thanks for the alert coincidentally we are actually trying to expose the password too, so don't mind us.
+
+3. */otp* login: with the knowledge of `admin`'s password in mind, we can now pass the first layer check using admin's account, and the second layer using *our* account. Again craft an */otp* request with *username = admin*, *password = $admin_reseted_password*, *phonenumber = $your_signup_phonenumber*, and *otp = $your_signup_otp*. As indicated before, the service will check the two pair independently, and it will finally login as the supplied *username*, which is exactly what we wanted (the site only needs one more match between *username* and *phonenumber* to make all our attempts useless).
+
+![trust5](./img/trust6.png)
+
+I don't know what is worse, making a trust bank authentication service with an unacceptable series of logical errors one after another, or using a *depositphotos* stock image as your app screen background.
+
+Flag: `efiensctf{@hidden_feature_@2fa_broken_@account_take_over}`
+
+# Easy MIPS
+
+> Source files: [easy_mips.asm](./re/easy_mips.asm)
+
+> Hint: MARS MIPS
+
+The challenge provides us the source code for MARS MIPS assembly code for a program. Apparently, knowledge of the language is required, although running it is not really necessary. However it has been long since I last did anything relevant to MIPS, so I decided to awake my ancient laptop with installed MARS on it. Upon a few runs, we can quickly see what the program does:
+
+- It takes user input string and store in a register address.
+- The program then jumps to `func0`. This procedure basically counts the number of characters in our string by incrementing `$v0` until our string loads into a line feed `\n`. It then compares the string length to 27 and will return false if it is not. Therefore, we know that our supplied input must be 27-character long.
+- If our string length is 27, the program jumps to `func1`. Here, it iterates over a series of char comparison using a similar pattern. An example iteration (the first one) looks like followed:
+
+```
+addi $t1, $zero, 937
+addi $t1, $t1, 847
+addi $t1, $t1, -1758
+add $t1, $t1, $a0
+lbu $t2, 0($t1)
+add $t4, $t2, $t3
+bne, $t4, 222, ret0
+addi $t3, $t3, 1
+```
+
+where `$a0` is the base address of our string and `$t3` is an integer initialized at 97. From the iteration, we can see that the first three instructions basically initializes `$t1` as the sum of the three integers supplied. The fourth instruction loads the address of `$t1 + $a0` into the same register. Then, `$t2` is loaded as the `$t1`th character of our input string, or `$a0[$t1]`, expressed in unsigned byte. `$t2` and `$t3` is then used to create `$t4` with a chosen operation (there are 3 kinds of operations in total: `add`, `sub` and `xor`). Finally, we compare `$t4` with a supplied integer and return false if it is not true. Else, `$t3` is incremented and we come to the next iteration until we have satisfied all 27 iterations without breaking at some point.
+
+From the process described, it is apparent we can quite easily revert the operation and find what `$a0[$t1]` should be. Doing this over the whole iteration gives us the clue of our supposed password (which also turns out to be the flag). From the above iteration, for example, we can calculate from the first 3 instructions `$t1 = 937 + 847 - 1758 = 26`. This means `$t2 = $a0[26]`, so this process is revealing the last letter of our flag. From the comparison `$t4 == 222`, we can calculate `$t2 = $t4 - $t3 = 222 - 97 = 125` (Note that `$t3` is initialized as 97 and is incremented each turn). This makes `$a0[26] == 125`, where 125 is also the ASCII value of the character `}`. 
+
+Repeating the same process will give us the flag, although a bit tedious. However, we can make some script to read from the `.mips` file and automate the result like [here](./re/easy_mips/easy_mips.py)
+
+```python
+f = open(os.path.join(os.sys.path[0], 'easy_mips.asm'), 'r')
+
+asm = "".join("".join(f.readlines()).split("addi $t3, $zero, 97\n")[1][2:]).split("\n\t\n\n")
+
+t3 = 97   # start value of t3 in the program
+
+flag = ['*'] * 27
+for i in range(len(asm)):
+  lines = asm[i].split("\n")
+  t1 = int(lines[0].split(", ")[-1]) + int(lines[1].split(", ")[-1]) + int(lines[2].split(", ")[-1])
+  t4 = int(lines[6].split(", ")[2])
+  op = lines[5].split(" ")[0]
+  if op == "\tadd":
+    t2 = t4 - t3 
+  if op == "\tsub":
+    t2 = t4 + t3 
+  if op == "\txor":
+    t2 = t4 ^ t3 
+  flag[t1] = t2 
+  t3 += 1
+  if i == 26: 
+    for c in flag:
+      print(chr(c), end = '')
+    break
+```
+
+Flag: `efiensctf{m!ps_!s_t00_3@sy}`
+
+# Single Byte
+
+> Source files: [singleByte](./re/single_byte/singleByte)
+
+In this challenge we are given an executable file without source. This program basically returns a string of random characters upon running without requiring any user interaction, prompting *Is this the flag you are looking for:*. As I did not have any experience and budget with Reverse Engineering, I just throw the stuff into Ghidra and look at the deassembled pseudocode. After some inspection, we come across the major function for this service:
+
+```c
+undefined8 FUN_0010098a(void)
+{
+  int iVar1;
+  time_t tVar2;
+  basic_ostream *this;
+  int local_10;
+  
+  tVar2 = time((time_t *)0x0);
+  srand((uint)tVar2);
+  iVar1 = rand();
+  local_10 = 0;
+  while (local_10 < 0x29) {
+    (&DAT_00301020)[local_10] = (&DAT_00301020)[local_10] ^ (byte)iVar1;
+    local_10 = local_10 + 1;
+  }
+  this = operator<<<std--char_traits<char>>
+                   ((basic_ostream *)cout,"Is this the flag you\'re looking for: ");
+  this = operator<<<std--char_traits<char>>(this,&DAT_00301020);
+  operator<<((basic_ostream<char,std--char_traits<char>>*)this,endl<char,std--char_traits<char>>);
+  return 0;
+}
+```
+
+In this function, `iVar1` is an unknown randomized variable, and `DAT_00301020` seems to be the flag. From the loop, it is apparent the program will XOR each character of the flag with the randomized `iVar1`. It then returns this encrypted message to the user.
+
+With some basic knowledge of reversing / crypto, we can easily see how to recover the original flag. Since every character is XORed with a same value, we just need to bruteforce on possible bytes of one character and see which one produce a valid message. Moreover, we also know that our flag must begin with either `e` or `E`. Therefore, two tries are enough to get the intended original flag. It turns out `e` is the actual first character.
+
+```python
+# Run ./singleByte > out.txt
+f = open(os.path.join(os.sys.path[0], 'out.txt'), 'rb')
+
+flag = f.readline().split(b': ')[1][:-1]
+iVar1 = ord('e') ^ flag[0]
+for b in flag:
+  print(chr(b ^ iVar1), end='')
+```
+
+Flag: `efiensctf{r4nd0m_numb3r5_c4n7_b347_m3!!!}`
