@@ -951,9 +951,14 @@ To be honest, without the helpful debugging message throughout the program, I wo
 Flag: `efiensctf{rop_4gain_and_ag4in_and_aga1n}`
 
 # References
-[1] Efiens' blog posts and resources. [https://blog.efiens.com/](https://blog.efiens.com/)
-[2] Santanu Sarkar, Some results on Cryptanalysis of RSA and Factorization
-[2] HackTricks, SQL Injection guides [https://book.hacktricks.xyz/pentesting-web/sql-injection](https://book.hacktricks.xyz/pentesting-web/sql-injection)
-[3] PortSwiggers, Vulnerabilities in multi-factor authentication, [https://portswigger.net/web-security/authentication/multi-factor](https://portswigger.net/web-security/authentication/multi-factor)
-[4] Nguyễn Thành Nam, Nghệ thuật tận dụng lỗi phần mềm
+[1] *Efiens' blog posts and resources*, [https://blog.efiens.com/](https://blog.efiens.com/)
+
+[2] Santanu Sarkar, *Some results on Cryptanalysis of RSA and Factorization*
+
+[2] HackTricks, *SQL Injection guides*, [https://book.hacktricks.xyz/pentesting-web/sql-injection](https://book.hacktricks.xyz/pentesting-web/sql-injection)
+
+[3] PortSwiggers, *Vulnerabilities in multi-factor authentication*, [https://portswigger.net/web-security/authentication/multi-factor](https://portswigger.net/web-security/authentication/multi-factor)
+
+[4] Nguyễn Thành Nam, *Nghệ thuật tận dụng lỗi phần mềm*
+
 [5] Miscellaneous resources on the Internet
