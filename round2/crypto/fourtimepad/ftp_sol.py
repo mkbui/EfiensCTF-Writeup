@@ -1,11 +1,9 @@
 from Cryptodome.Util.number import bytes_to_long, long_to_bytes
 import random
 
-
 def hamming(intin):
     count = 0
     while intin > 0:
-        #print(intin)
         if intin & 1: count += 1
         intin //= 2
     return count

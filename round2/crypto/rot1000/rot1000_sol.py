@@ -1,6 +1,6 @@
 import random
 from string import ascii_uppercase as ALPHABET
-from base64 import b64encode, b64decode, decodebytes
+from base64 import b64encode, b64decode
 
 
 def rot(s, num):
@@ -20,7 +20,7 @@ while (True):
         guess += bytes([l[i] ^ guess[i]])
 
     try:
-        cipher = decodebytes(guess).decode()
+        cipher = b64decode(guess).decode()
         break
     except:
         pass
