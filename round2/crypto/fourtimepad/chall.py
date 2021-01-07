@@ -26,23 +26,3 @@ if __name__ == "__main__":
 
     with open("output.txt","w") as f:
         f.write(f"Magic number: {(twist(random_numbers))} \nEncrypted flag: {ct}")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

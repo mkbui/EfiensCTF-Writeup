@@ -5,9 +5,7 @@ f = open(os.path.join(os.sys.path[0], 'easy_mips.asm'), 'r')
 asm = "".join("".join(f.readlines()).split("addi $t3, $zero, 97\n")[1][2:]).split("\n\t\n\n")
 
 t3 = 97   # start value of t3 in the program
-t2 = 0 
 
-print(asm[2])
 flag = ['*'] * 27
 for i in range(len(asm)):
   lines = asm[i].split("\n")
