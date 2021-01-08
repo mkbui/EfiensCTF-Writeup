@@ -1,7 +1,7 @@
 # EfiensCTF-Writeup-Round-2
-> Short write-up for CTF Problems from EfiensCTF 2020 Round 2
+> Short write-ups for CTF Problems from EfiensCTF 2020 Round 2
 
-EfiensCTF 2020, organized and hosted by HCMUT Information Security club [Efiens](https://blog.efiens.com), is the entrance competition for recruiting new members in our university for this year. The CTF includes 2 rounds, which took place on 17/10 and 12/12, respectively. The first round is an online 10-hour introductory-level contest mostly for familiarizing with CTF concepts. The second round is originally an onsite 7-hour jeopary-style CTF, but after that, it was opened for everyone to join and attempt to solve the challenges in around one week. This write-ups attempt to summarize the process of solving the CTF challenges presented in the second round of EfiensCTF 2020.
+EfiensCTF 2020, organized and hosted by HCMUT Information Security club [Efiens](https://blog.efiens.com), is the entrance competition for recruiting new members in our university for this year. The CTF includes 2 rounds, which took place on 17/10 and 12/12, respectively. The first round is an online 10-hour introductory-level contest mostly for familiarizing with CTF concepts. The second round is originally an onsite 7-hour jeopary-style CTF, but after that, it was opened as an individual competition for everyone to join and attempt to solve the challenges in around one week. This write-ups attempt to summarize the process of solving the CTF challenges presented in the second round of EfiensCTF 2020.
 
 The challenges were hosted on Efiens' [CTF Website](http://45.77.254.247/challenges)
 
@@ -28,9 +28,7 @@ The following tables lists out the challenges I solved during the contest time. 
 | Pwn     | [Luck](#luck)         |
 | Pwn     | [ROP](#rop)           |
 
-Note that this list only contains problem that I solved, which were not completed. 
-
-All challenge files and solutions can be found in [my github repos](https://github.com/mkbui/EfiensCTF-Writeup/tree/main/round2)
+Note that this list only contains problem that I solved, which do not include every problem hosted.
 
 
 ## ROT1000
@@ -240,6 +238,7 @@ print(long_to_bytes(int(res[::-1], 2)))
 
 It is possible to use python to automate the server interaction, which is implemented in [ecbc_sol.py](./crypto/ecbc/ecbc_sol.py)
 
+Flag: `EFIENSCTF{Now_you_know_ECB_is_weak_;)_}`
 
 # Four time pad
 
@@ -308,7 +307,8 @@ def hamming(intin):
 Using the clue above, I figured `B`, `C`, `D`, or some bitwise combination between them, must have a noticeably higher or lower Hamming distance with our `blob` or `magic`. At the contest time, I was not keen and intelligent enough to work out which exact combination is the mathematically suitable. However, using the *no-bruteforce* suggestion, I tried experimenting with simple single `B` / `C` / `D` cases first by generating my own seeds and magic numbers. Upon some testing, I figure out `blob` has an unusually lower Hamming distance when compared with `B` and `D`. In almost all cases, discovering the two numbers that produced the lowest Hamming weight when XORed with `blob` also means discovering `B` and `D`. 
 
 
-> How is this the case, though? We can use some probability into working out the reason. Assume that for a randomly generated number using `getrandbits`, each bit has approximately 50% of being one, and 50% of being zero. This means that if we XOR `blob` with any randomly generated 500-bit number different from `B`, `C` or `D`, the result would be another completely random number with roughly 50% set bits, or in our term, `0.5*500` Hamming weight.
+> How is this the case, though? First, it is important to remember with the same seed, `random.getrandbits()` will always generate the same number (thus, using predetermined seeds is never advised, let alone using low-bit seeds). Hence, the random number pool actually relies on the 256 possible values the seeds can take.
+> Now we can use some probability into working out the reason. Assume that for a randomly generated number using `getrandbits`, each bit has approximately 50% chance of being one, and 50% chance of being zero. This means that if we XOR `blob` with any randomly generated 500-bit number from seeds different from `B`, `C` or `D`, the result would be another completely random number with roughly 50% set bits, or in our term, `0.5*500` Hamming weight.
 >
 > The second assumption is that our flag's bit length is significantly smaller than 500 (for most CTF problems, the flag bit length is usually 200-400 bits). This means that our upper 100-300 bits of `blob` only depends on `B`, `C`, and `D`. Otherwise, if the flag's bit length is about or larger than 500, the result would again be a completely random number with 50% set bits and our method will not work at all.
 >
@@ -320,7 +320,7 @@ X ^ Y       = (X & ~Y) | (~X & Y)
 (X & Y) ^ X = (X & ~Y)
 ```
 
-> Now, with the assumptions and properties above, we work on the result of XORing our `blob` (disregarding `ct`) and `B`, `C`, or `D`.
+> Now, with the assumptions and properties above, we work on the result of XORing our `blob` (disregarding `ct`) with a random number generated from `B`, `C`, or `D`.
 ```
 blob ^ B    = (B & C) ^ (C | D) ^ B ^ C ^ D 
             = (B & C) ^ ((C | D) ^ C ^ D) ^ (B ^ B) 
@@ -436,14 +436,16 @@ Flag: `efiensctf{4l@dd1n_M1ght_@ls0_b3_4_H4ck3r.}`
 
 > Hint 2: The gift is located at **flag** in Root directory
 
-The challenge description is quite interesting, indicating that this website was created in a learning lesson on [W3school](#https://www.w3schools.com/nodejs/nodejs_url.asp). The description basically prompts us to use directory traversal to view the flag file (as also indicated in more detail in Hint 2). However, if we try entering `../` on the browser URL, the texts will be immediately removed. This indicates that the Node server has performed some URL normalization on the input, which removes the *dot dot dash* to increase safety (from these types of attack we are performing, for example). This can be bypassed by forcing the request to be exactly what we want, which can be performed either by `curl`'s `--path-as-is` flag option or by Burp suite's request modification.
+The challenge description is quite interesting, indicating that this website was created in a learning lesson on [W3school](#https://www.w3schools.com/nodejs/nodejs_url.asp). The description basically prompts us to use directory traversal to view the flag file (as also indicated in more detail in Hint 2). However, if we try entering `../` on the browser URL, the texts will be immediately removed. This indicates that the browser has performed some URL normalization on the input, which removes the *dot dot dash* to increase safety (from these types of attack we are performing, for example). This can be bypassed by forcing the request to be exactly what we want, which can be performed either by `curl`'s `--path-as-is` flag option or by Burp suite's request modification.
 
 Upon some inspection, we know that the flag is located at *http://128.199.177.181:4441/../../../flag*. Therefore, the `curl` command is
 ```
 curl --path-as-is "http://128.199.177.181:4441/../../../flag" 
 ```
 
-If we want to use Burp, just modify the `GET` request displayed in Proxy (already normalized by the server) from something like `GET /index.html HTTP 1.1` to `GET /../../../flag HTTP/1.1` and forward. 
+Note that `curl` also performs path normalization, so the `--path-as-is` flag is to request the command to send the exact URL as we intended to.
+
+If we want to use Burp, just modify the `GET` request displayed in Proxy (normalized by default by the browser) from something like `GET /index.html HTTP 1.1` to `GET /../../../flag HTTP/1.1` and forward. 
 
 Flag: `efiensctf{Remembering_Understanding_Applying_Analyzing_Evaluating_Creating}`
 
@@ -461,12 +463,12 @@ The item view link is detailed as *http://128.199.177.181:4444/info.php?id=1*. T
 - Spaces (URL encoded as `%20`).
 - Sensitive non-alphabetic non-numeric character, like `,`, `'`, and `/`.
 
-For my injection, I need to use *select*, *union*, *join*, *from* commands, space characters, and `,` (in `select 1, 2 from A ...`), `'` (in `where table_name = 'abc'`). The plan to bypass each filter scheme is as followed:
+For my injection, I need to use *select*, *union*, *join*, *from* commands, space characters, and `,` (in `select 1, 2 from A ...`), `'` (in `where table_name = 'abc'`). Note that the closing quote `'` for the original `select` is not needed since it is using numeric query. The plan to bypass each filter scheme is as followed:
 
 - Since the SQL query command check is case-sensitive, just replace *select* with *sElEcT* or something similar. Apply to other commands.
 - Replace space with alternative space-equivalent URL encode characters, like `%0b` or `%0c`.
-- Replace `select 1, 2 from A ...` with `select * from (select 1)A join (select 2)A` (if we are not interested in that column, just replace `A` with some arbitrary character).
-- For `where table_name = 'abc'`, although I have not come up with a legit bypass, we can still list out every selected item in the table using `group_concat` and try to look for interesting information that may relate to our table. Furthermore, we can limit the number of items returned by some functions, such as `where length(table_name)=6`.
+- Replace `select 1, 2 from A ...` with `select * from (select 1)A join (select 2)A ...` (if we are not interested in that column, just replace `A` with some arbitrary character).
+- For `where table_name = 'abc'`, although I have not come up with a legit bypass, we can still list out every selected item in the table using `group_concat` and try to look for interesting information that may relate to our table. Furthermore, we can limit the number of items returned by some functions, such as `where length(table_name)=3`.
 
 With this scheme, we first construct a token replace functions to improve code readability.
 ```python
@@ -493,6 +495,7 @@ We are now ready to test our injection. There are 3 main queries we need to perf
 ![rapper2](./img/rapperhub2.png)
 
 As revealed in the description now, the table name is `R4pp3r`.
+
 2. Get the column name. As indicated before, we shall list out all column names in our database and view which column name is suspicious. The prepend query is as followed
 ```
 0 union select * from (select 1)a join (select 2)b join (select group_concat(column_name) from information_schema.columns where length(table_name)=6)c#
@@ -544,6 +547,7 @@ Only after a while and some help did I realize the logical error here: *the OTP 
 
 With this knowledge in mind, it is easy to craft our multimillion plan to break into the web service:
 1. */signup* with some made up name, username and phonenumber. Note down the *phonenumber* and then the OTP Code displayed after registration. 
+
 2. */resetpassword* with the following fields: *username = **admin***, *phonenumber = $your_signup_phonenumber$*, and *otp = $your_signup_otp*. This can be done either by modifying a Burp request from the login site or just by modifying the HTML element on the browser.
 
 ![trust3](./img/trust3.png)
@@ -554,7 +558,7 @@ After sending the request, the site will use our *phonenumber* and *otp* to veri
 
 ![trust4](./img/trust4.png)
 
-Yes thanks for the alert coincidentally we are actually trying to expose the password too, so don't mind us.
+Yes thanks for the alert coincidentally we are actually trying to expose the password too.
 
 3. */otp* login: with the knowledge of `admin`'s password in mind, we can now pass the first layer check using admin's account, and the second layer using *our* account. Again craft an */otp* request with *username = admin*, *password = $admin_reseted_password*, *phonenumber = $your_signup_phonenumber*, and *otp = $your_signup_otp*. As indicated before, the service will check the two pair independently, and it will finally login as the supplied *username*, which is exactly what we wanted (the site only needs one more match between *username* and *phonenumber* to make all our attempts useless).
 
@@ -587,7 +591,7 @@ bne, $t4, 222, ret0
 addi $t3, $t3, 1
 ```
 
-where `$a0` is the base address of our string and `$t3` is an integer initialized at 97. From the iteration, we can see that the first three instructions basically initializes `$t1` as the sum of the three integers supplied. The fourth instruction loads the address of `$t1 + $a0` into the same register. Then, `$t2` is loaded as the `$t1`th character of our input string, or `$a0[$t1]`, expressed in unsigned byte. `$t2` and `$t3` is then used to create `$t4` with a chosen operation (there are 3 kinds of operations in total: `add`, `sub` and `xor`). Finally, we compare `$t4` with a supplied integer and return false if it is not true. Else, `$t3` is incremented and we come to the next iteration until we have satisfied all 27 iterations without breaking at some point.
+where `$a0` is the base address of our string and `$t3` is an integer initialized at 97. From the iteration, we can see that the first three instructions basically initializes `$t1` as the sum of the three integers supplied. The fourth instruction loads the address of `$t1 + $a0` into the same register. Then, `$t2` is loaded as the `$t1`th character of our input string, or `$a0[$t1]`, expressed in unsigned byte. `$t2` and `$t3` is then used to create `$t4` with a chosen operation (there are 3 kinds of operations in total: `add`, `sub` and `xor`). Finally, we compare `$t4` with a supplied integer and return false if it is not equal. Else, `$t3` is incremented and we come to the next iteration until we have satisfied all 27 iterations without breaking at some point.
 
 From the process described, it is apparent we can quite easily revert the operation and find what `$a0[$t1]` should be. Doing this over the whole iteration gives us the clue of our supposed password (which also turns out to be the flag). From the above iteration, for example, we can calculate from the first 3 instructions `$t1 = 937 + 847 - 1758 = 26`. This means `$t2 = $a0[26]`, so this process is revealing the last letter of our flag. From the comparison `$t4 == 222`, we can calculate `$t2 = $t4 - $t3 = 222 - 97 = 125` (Note that `$t3` is initialized as 97 and is incremented each turn). This makes `$a0[26] == 125`, where 125 is also the ASCII value of the character `}`. 
 
@@ -652,7 +656,7 @@ undefined8 FUN_0010098a(void)
 }
 ```
 
-In this function, `iVar1` is an unknown randomized variable, and `DAT_00301020` seems to be the flag. From the loop, it is apparent the program will XOR each character of the flag with the randomized `iVar1`. It then returns this encrypted message to the user.
+In this function, `iVar1` is an unknown randomized variable, and `DAT_00301020` seems to be the flag. From the loop, it is apparent the program will XOR each character of the flag with `iVar1`. It then returns this encrypted message to the user.
 
 With some basic knowledge of reversing / crypto, we can easily see how to recover the original flag. Since every character is XORed with a same value, we just need to bruteforce on possible bytes of one character and see which one produce a valid message. Moreover, we also know that our flag must begin with either `e` or `E`. Therefore, two tries are enough to get the intended original flag. It turns out `e` is the actual first character.
 
@@ -741,7 +745,7 @@ Flag: `efiensctf{ULTRA_MEGA_SUPER_HUGE_VIETLOT_JACKPOT}`
 
 > Source files: [luck.py](./pwn/luck/luck.py)
 
-> Hint: [Python int() documentation)(https://docs.python.org/3/library/functions.html#int)
+> Hint: [Python int() documentation](https://docs.python.org/3/library/functions.html#int)
 
 > Connect at 128.199.234.122:2222
 
@@ -781,15 +785,15 @@ def luck(money):
 
 The program removes any sign notation as well as making sure our input is a valid Python `int()` init argument, and contains only ASCII characters. It also makes sure `int(bet)` is not larger than our current asset. 
 
-As we can quickly see here, the intended exploit should be between the `int()` and `get_value()` functions. The coder uses `int()` in checking constraint, but uses `get_value()` in converting our input into the money. And as we can see, `get_value()` naively calculate the ASCII difference from `'0'` of each digit in our input, which could get us an unexpectedly high result if our digits contain any non-numeric character with ASCII value larger than `'0'`. Furthermore, this character should be accepted and convertable by `int()` (the value should also be smaller than 69). Attempts with stuffs like `'0.0000001'` or `'0x0000001'` could not yield result, so I abandon the problem for a while. Briefly after, the challenge author releases a hint showing a link to Python's document about `int` function. I had visited this link before, but had not pinpoint the exploitable part. However, upon the second visit, I paid more attention to the details in the documentation. 
+As we can quickly see here, the intended exploit should be between the `int()` and `get_value()` functions. The coder uses `int()` in checking constraint, but uses `get_value()` in converting our input into the amount of money. And as we can see, `get_value()` naively calculate the ASCII difference from `'0'` of each digit in our input, which could get us an unexpectedly high result if our digits contain any non-numeric character with ASCII value larger than `'0'`. Furthermore, this character should be accepted and convertable by `int()` (the value should also be smaller than 69). Attempts with stuffs like `'0.0000001'` or `'0x0000001'` could not yield result, so I abandon the problem for a while. Briefly after, the challenge author releases a hint showing a link to Python's document about `int` function. I had visited this link before, but had not pinpoint the exploitable part. However, upon the second visit, I paid more attention to the details in the documentation. 
 
 First we should notice that in the source, the version specification is indicated as `#!/usr/bin/env python3.6`. This tells us some hint about this version, so I paid attention on changes made on `int()` documented. Here, we can see:
 
 `Changed in version 3.6: Grouping digits with underscores as in code literals is allowed.`
 
-More exploration on this topic reveals that we can pass into `int()` a string with alternative underscores like `1_2_3`, which would be interpreted as `123`. Underscore character also has a much higher value than `'0'`. Therefore, we have finally come to a possible solution. We would just need to craft something like `0_0_0_0_0_6_9`, which would be accepted by `int()` and upon winning, would gain us a really large value enough to buy the flag.
+More exploration on this topic reveals that we can pass into `int()` a string with alternative underscores like `1_2_3`, which would be interpreted as `123`. Underscore character also has a much higher ASCII value than `'0'`. And thus there is, a possible solution. We would just need to craft something like `0_0_0_0_0_6_9`, which would be accepted by `int()` and upon winning, would gain us a really large value enough to buy the flag.
 
-Although we just need to win to gain enough money, in some cases we may be unfortunate enough to lose all money before winning once. Thus, a script could be convenient to accomodate this.
+Although we just need to win once to gain enough money, in some cases we may be unfortunate enough to lose all money before even winning. Thus, a script could be convenient to accomodate this.
 
 ```python
 from pwn import *
@@ -946,14 +950,19 @@ r.send(payload+b"\n")
 print(r.recv().decode())
 ```
 
-To be honest, without the helpful debugging message throughout the program, I would have much more difficulty complete this problem since my understanding of program stacks was still limited at the moment.
+To be honest, the helpful debugging message throughout the program does help a lot as it is intended for beginners.
 
 Flag: `efiensctf{rop_4gain_and_ag4in_and_aga1n}`
 
 # References
-[1] Efiens' blog posts and resources. [https://blog.efiens.com/](https://blog.efiens.com/)
-[2] Santanu Sarkar, Some results on Cryptanalysis of RSA and Factorization
-[2] HackTricks, SQL Injection guides [https://book.hacktricks.xyz/pentesting-web/sql-injection](https://book.hacktricks.xyz/pentesting-web/sql-injection)
-[3] PortSwiggers, Vulnerabilities in multi-factor authentication, [https://portswigger.net/web-security/authentication/multi-factor](https://portswigger.net/web-security/authentication/multi-factor)
-[4] Nguyễn Thành Nam, Nghệ thuật tận dụng lỗi phần mềm
-[5] Miscellaneous resources on the Internet
+[1] *Efiens' blog posts and resources*, [https://blog.efiens.com/](https://blog.efiens.com/)
+
+[2] Santanu Sarkar, *Some results on Cryptanalysis of RSA and Factorization*
+
+[3] HackTricks, *SQL Injection guides*, [https://book.hacktricks.xyz/pentesting-web/sql-injection](https://book.hacktricks.xyz/pentesting-web/sql-injection)
+
+[4] PortSwiggers, *Vulnerabilities in multi-factor authentication*, [https://portswigger.net/web-security/authentication/multi-factor](https://portswigger.net/web-security/authentication/multi-factor)
+
+[5] Nguyễn Thành Nam, *Nghệ thuật tận dụng lỗi phần mềm*
+
+[6] Miscellaneous resources on the Internet
