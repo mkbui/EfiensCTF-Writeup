@@ -1,7 +1,7 @@
 # EfiensCTF-Writeup-Round-2
-> Short write-up for CTF Problems from EfiensCTF 2020 Round 2
+> Short write-ups for CTF Problems from EfiensCTF 2020 Round 2
 
-EfiensCTF 2020, organized and hosted by HCMUT Information Security club [Efiens](https://blog.efiens.com), is the entrance competition for recruiting new members in our university for this year. The CTF includes 2 rounds, which took place on 17/10 and 12/12, respectively. The first round is an online 10-hour introductory-level contest mostly for familiarizing with CTF concepts. The second round is originally an onsite 7-hour jeopary-style CTF, but after that, it was opened for everyone to join and attempt to solve the challenges in around one week. This write-ups attempt to summarize the process of solving the CTF challenges presented in the second round of EfiensCTF 2020.
+EfiensCTF 2020, organized and hosted by HCMUT Information Security club [Efiens](https://blog.efiens.com), is the entrance competition for recruiting new members in our university for this year. The CTF includes 2 rounds, which took place on 17/10 and 12/12, respectively. The first round is an online 10-hour introductory-level contest mostly for familiarizing with CTF concepts. The second round is originally an onsite 7-hour jeopary-style CTF, but after that, it was opened as an individual competition for everyone to join and attempt to solve the challenges in around one week. This write-ups attempt to summarize the process of solving the CTF challenges presented in the second round of EfiensCTF 2020.
 
 The challenges were hosted on Efiens' [CTF Website](http://45.77.254.247/challenges)
 
@@ -28,9 +28,7 @@ The following tables lists out the challenges I solved during the contest time. 
 | Pwn     | [Luck](#luck)         |
 | Pwn     | [ROP](#rop)           |
 
-Note that this list only contains problem that I solved, which were not completed. 
-
-All challenge files and solutions can be found in [my github repos](https://github.com/mkbui/EfiensCTF-Writeup/tree/main/round2)
+Note that this list only contains problem that I solved, which do not include every problem hosted.
 
 
 ## ROT1000
@@ -438,14 +436,16 @@ Flag: `efiensctf{4l@dd1n_M1ght_@ls0_b3_4_H4ck3r.}`
 
 > Hint 2: The gift is located at **flag** in Root directory
 
-The challenge description is quite interesting, indicating that this website was created in a learning lesson on [W3school](#https://www.w3schools.com/nodejs/nodejs_url.asp). The description basically prompts us to use directory traversal to view the flag file (as also indicated in more detail in Hint 2). However, if we try entering `../` on the browser URL, the texts will be immediately removed. This indicates that the Node server has performed some URL normalization on the input, which removes the *dot dot dash* to increase safety (from these types of attack we are performing, for example). This can be bypassed by forcing the request to be exactly what we want, which can be performed either by `curl`'s `--path-as-is` flag option or by Burp suite's request modification.
+The challenge description is quite interesting, indicating that this website was created in a learning lesson on [W3school](#https://www.w3schools.com/nodejs/nodejs_url.asp). The description basically prompts us to use directory traversal to view the flag file (as also indicated in more detail in Hint 2). However, if we try entering `../` on the browser URL, the texts will be immediately removed. This indicates that the browser has performed some URL normalization on the input, which removes the *dot dot dash* to increase safety (from these types of attack we are performing, for example). This can be bypassed by forcing the request to be exactly what we want, which can be performed either by `curl`'s `--path-as-is` flag option or by Burp suite's request modification.
 
 Upon some inspection, we know that the flag is located at *http://128.199.177.181:4441/../../../flag*. Therefore, the `curl` command is
 ```
 curl --path-as-is "http://128.199.177.181:4441/../../../flag" 
 ```
 
-If we want to use Burp, just modify the `GET` request displayed in Proxy (already normalized by the server) from something like `GET /index.html HTTP 1.1` to `GET /../../../flag HTTP/1.1` and forward. 
+Note that `curl` also performs path normalization, so the `--path-as-is` flag is to request the command to send the exact URL as we intended to.
+
+If we want to use Burp, just modify the `GET` request displayed in Proxy (normalized by default by the browser) from something like `GET /index.html HTTP 1.1` to `GET /../../../flag HTTP/1.1` and forward. 
 
 Flag: `efiensctf{Remembering_Understanding_Applying_Analyzing_Evaluating_Creating}`
 
@@ -463,12 +463,12 @@ The item view link is detailed as *http://128.199.177.181:4444/info.php?id=1*. T
 - Spaces (URL encoded as `%20`).
 - Sensitive non-alphabetic non-numeric character, like `,`, `'`, and `/`.
 
-For my injection, I need to use *select*, *union*, *join*, *from* commands, space characters, and `,` (in `select 1, 2 from A ...`), `'` (in `where table_name = 'abc'`). The plan to bypass each filter scheme is as followed:
+For my injection, I need to use *select*, *union*, *join*, *from* commands, space characters, and `,` (in `select 1, 2 from A ...`), `'` (in `where table_name = 'abc'`). Note that the closing quote `'` for the original `select` is not needed since it is using numeric query. The plan to bypass each filter scheme is as followed:
 
 - Since the SQL query command check is case-sensitive, just replace *select* with *sElEcT* or something similar. Apply to other commands.
 - Replace space with alternative space-equivalent URL encode characters, like `%0b` or `%0c`.
-- Replace `select 1, 2 from A ...` with `select * from (select 1)A join (select 2)A` (if we are not interested in that column, just replace `A` with some arbitrary character).
-- For `where table_name = 'abc'`, although I have not come up with a legit bypass, we can still list out every selected item in the table using `group_concat` and try to look for interesting information that may relate to our table. Furthermore, we can limit the number of items returned by some functions, such as `where length(table_name)=6`.
+- Replace `select 1, 2 from A ...` with `select * from (select 1)A join (select 2)A ...` (if we are not interested in that column, just replace `A` with some arbitrary character).
+- For `where table_name = 'abc'`, although I have not come up with a legit bypass, we can still list out every selected item in the table using `group_concat` and try to look for interesting information that may relate to our table. Furthermore, we can limit the number of items returned by some functions, such as `where length(table_name)=3`.
 
 With this scheme, we first construct a token replace functions to improve code readability.
 ```python
@@ -495,6 +495,7 @@ We are now ready to test our injection. There are 3 main queries we need to perf
 ![rapper2](./img/rapperhub2.png)
 
 As revealed in the description now, the table name is `R4pp3r`.
+
 2. Get the column name. As indicated before, we shall list out all column names in our database and view which column name is suspicious. The prepend query is as followed
 ```
 0 union select * from (select 1)a join (select 2)b join (select group_concat(column_name) from information_schema.columns where length(table_name)=6)c#
@@ -546,6 +547,7 @@ Only after a while and some help did I realize the logical error here: *the OTP 
 
 With this knowledge in mind, it is easy to craft our multimillion plan to break into the web service:
 1. */signup* with some made up name, username and phonenumber. Note down the *phonenumber* and then the OTP Code displayed after registration. 
+
 2. */resetpassword* with the following fields: *username = **admin***, *phonenumber = $your_signup_phonenumber$*, and *otp = $your_signup_otp*. This can be done either by modifying a Burp request from the login site or just by modifying the HTML element on the browser.
 
 ![trust3](./img/trust3.png)
@@ -556,7 +558,7 @@ After sending the request, the site will use our *phonenumber* and *otp* to veri
 
 ![trust4](./img/trust4.png)
 
-Yes thanks for the alert coincidentally we are actually trying to expose the password too, so don't mind us.
+Yes thanks for the alert coincidentally we are actually trying to expose the password too.
 
 3. */otp* login: with the knowledge of `admin`'s password in mind, we can now pass the first layer check using admin's account, and the second layer using *our* account. Again craft an */otp* request with *username = admin*, *password = $admin_reseted_password*, *phonenumber = $your_signup_phonenumber*, and *otp = $your_signup_otp*. As indicated before, the service will check the two pair independently, and it will finally login as the supplied *username*, which is exactly what we wanted (the site only needs one more match between *username* and *phonenumber* to make all our attempts useless).
 
@@ -743,7 +745,7 @@ Flag: `efiensctf{ULTRA_MEGA_SUPER_HUGE_VIETLOT_JACKPOT}`
 
 > Source files: [luck.py](./pwn/luck/luck.py)
 
-> Hint: [Python int() documentation)(https://docs.python.org/3/library/functions.html#int)
+> Hint: [Python int() documentation](https://docs.python.org/3/library/functions.html#int)
 
 > Connect at 128.199.234.122:2222
 
@@ -957,10 +959,10 @@ Flag: `efiensctf{rop_4gain_and_ag4in_and_aga1n}`
 
 [2] Santanu Sarkar, *Some results on Cryptanalysis of RSA and Factorization*
 
-[2] HackTricks, *SQL Injection guides*, [https://book.hacktricks.xyz/pentesting-web/sql-injection](https://book.hacktricks.xyz/pentesting-web/sql-injection)
+[3] HackTricks, *SQL Injection guides*, [https://book.hacktricks.xyz/pentesting-web/sql-injection](https://book.hacktricks.xyz/pentesting-web/sql-injection)
 
-[3] PortSwiggers, *Vulnerabilities in multi-factor authentication*, [https://portswigger.net/web-security/authentication/multi-factor](https://portswigger.net/web-security/authentication/multi-factor)
+[4] PortSwiggers, *Vulnerabilities in multi-factor authentication*, [https://portswigger.net/web-security/authentication/multi-factor](https://portswigger.net/web-security/authentication/multi-factor)
 
-[4] Nguyễn Thành Nam, *Nghệ thuật tận dụng lỗi phần mềm*
+[5] Nguyễn Thành Nam, *Nghệ thuật tận dụng lỗi phần mềm*
 
-[5] Miscellaneous resources on the Internet
+[6] Miscellaneous resources on the Internet
