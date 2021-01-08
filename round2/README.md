@@ -240,6 +240,7 @@ print(long_to_bytes(int(res[::-1], 2)))
 
 It is possible to use python to automate the server interaction, which is implemented in [ecbc_sol.py](./crypto/ecbc/ecbc_sol.py)
 
+Flag: `EFIENSCTF{Now_you_know_ECB_is_weak_;)_}`
 
 # Four time pad
 
@@ -308,7 +309,8 @@ def hamming(intin):
 Using the clue above, I figured `B`, `C`, `D`, or some bitwise combination between them, must have a noticeably higher or lower Hamming distance with our `blob` or `magic`. At the contest time, I was not keen and intelligent enough to work out which exact combination is the mathematically suitable. However, using the *no-bruteforce* suggestion, I tried experimenting with simple single `B` / `C` / `D` cases first by generating my own seeds and magic numbers. Upon some testing, I figure out `blob` has an unusually lower Hamming distance when compared with `B` and `D`. In almost all cases, discovering the two numbers that produced the lowest Hamming weight when XORed with `blob` also means discovering `B` and `D`. 
 
 
-> How is this the case, though? We can use some probability into working out the reason. Assume that for a randomly generated number using `getrandbits`, each bit has approximately 50% of being one, and 50% of being zero. This means that if we XOR `blob` with any randomly generated 500-bit number different from `B`, `C` or `D`, the result would be another completely random number with roughly 50% set bits, or in our term, `0.5*500` Hamming weight.
+> How is this the case, though? First, it is important to remember with the same seed, `random.getrandbits()` will always generate the same number (thus, using predetermined seeds is never advised, let alone using low-bit seeds). Hence, the random number pool actually relies on the 256 possible values the seeds can take.
+> Now we can use some probability into working out the reason. Assume that for a randomly generated number using `getrandbits`, each bit has approximately 50% chance of being one, and 50% chance of being zero. This means that if we XOR `blob` with any randomly generated 500-bit number from seeds different from `B`, `C` or `D`, the result would be another completely random number with roughly 50% set bits, or in our term, `0.5*500` Hamming weight.
 >
 > The second assumption is that our flag's bit length is significantly smaller than 500 (for most CTF problems, the flag bit length is usually 200-400 bits). This means that our upper 100-300 bits of `blob` only depends on `B`, `C`, and `D`. Otherwise, if the flag's bit length is about or larger than 500, the result would again be a completely random number with 50% set bits and our method will not work at all.
 >
@@ -320,7 +322,7 @@ X ^ Y       = (X & ~Y) | (~X & Y)
 (X & Y) ^ X = (X & ~Y)
 ```
 
-> Now, with the assumptions and properties above, we work on the result of XORing our `blob` (disregarding `ct`) and `B`, `C`, or `D`.
+> Now, with the assumptions and properties above, we work on the result of XORing our `blob` (disregarding `ct`) with a random number generated from `B`, `C`, or `D`.
 ```
 blob ^ B    = (B & C) ^ (C | D) ^ B ^ C ^ D 
             = (B & C) ^ ((C | D) ^ C ^ D) ^ (B ^ B) 
@@ -587,7 +589,7 @@ bne, $t4, 222, ret0
 addi $t3, $t3, 1
 ```
 
-where `$a0` is the base address of our string and `$t3` is an integer initialized at 97. From the iteration, we can see that the first three instructions basically initializes `$t1` as the sum of the three integers supplied. The fourth instruction loads the address of `$t1 + $a0` into the same register. Then, `$t2` is loaded as the `$t1`th character of our input string, or `$a0[$t1]`, expressed in unsigned byte. `$t2` and `$t3` is then used to create `$t4` with a chosen operation (there are 3 kinds of operations in total: `add`, `sub` and `xor`). Finally, we compare `$t4` with a supplied integer and return false if it is not true. Else, `$t3` is incremented and we come to the next iteration until we have satisfied all 27 iterations without breaking at some point.
+where `$a0` is the base address of our string and `$t3` is an integer initialized at 97. From the iteration, we can see that the first three instructions basically initializes `$t1` as the sum of the three integers supplied. The fourth instruction loads the address of `$t1 + $a0` into the same register. Then, `$t2` is loaded as the `$t1`th character of our input string, or `$a0[$t1]`, expressed in unsigned byte. `$t2` and `$t3` is then used to create `$t4` with a chosen operation (there are 3 kinds of operations in total: `add`, `sub` and `xor`). Finally, we compare `$t4` with a supplied integer and return false if it is not equal. Else, `$t3` is incremented and we come to the next iteration until we have satisfied all 27 iterations without breaking at some point.
 
 From the process described, it is apparent we can quite easily revert the operation and find what `$a0[$t1]` should be. Doing this over the whole iteration gives us the clue of our supposed password (which also turns out to be the flag). From the above iteration, for example, we can calculate from the first 3 instructions `$t1 = 937 + 847 - 1758 = 26`. This means `$t2 = $a0[26]`, so this process is revealing the last letter of our flag. From the comparison `$t4 == 222`, we can calculate `$t2 = $t4 - $t3 = 222 - 97 = 125` (Note that `$t3` is initialized as 97 and is incremented each turn). This makes `$a0[26] == 125`, where 125 is also the ASCII value of the character `}`. 
 
@@ -652,7 +654,7 @@ undefined8 FUN_0010098a(void)
 }
 ```
 
-In this function, `iVar1` is an unknown randomized variable, and `DAT_00301020` seems to be the flag. From the loop, it is apparent the program will XOR each character of the flag with the randomized `iVar1`. It then returns this encrypted message to the user.
+In this function, `iVar1` is an unknown randomized variable, and `DAT_00301020` seems to be the flag. From the loop, it is apparent the program will XOR each character of the flag with `iVar1`. It then returns this encrypted message to the user.
 
 With some basic knowledge of reversing / crypto, we can easily see how to recover the original flag. Since every character is XORed with a same value, we just need to bruteforce on possible bytes of one character and see which one produce a valid message. Moreover, we also know that our flag must begin with either `e` or `E`. Therefore, two tries are enough to get the intended original flag. It turns out `e` is the actual first character.
 
@@ -781,15 +783,15 @@ def luck(money):
 
 The program removes any sign notation as well as making sure our input is a valid Python `int()` init argument, and contains only ASCII characters. It also makes sure `int(bet)` is not larger than our current asset. 
 
-As we can quickly see here, the intended exploit should be between the `int()` and `get_value()` functions. The coder uses `int()` in checking constraint, but uses `get_value()` in converting our input into the money. And as we can see, `get_value()` naively calculate the ASCII difference from `'0'` of each digit in our input, which could get us an unexpectedly high result if our digits contain any non-numeric character with ASCII value larger than `'0'`. Furthermore, this character should be accepted and convertable by `int()` (the value should also be smaller than 69). Attempts with stuffs like `'0.0000001'` or `'0x0000001'` could not yield result, so I abandon the problem for a while. Briefly after, the challenge author releases a hint showing a link to Python's document about `int` function. I had visited this link before, but had not pinpoint the exploitable part. However, upon the second visit, I paid more attention to the details in the documentation. 
+As we can quickly see here, the intended exploit should be between the `int()` and `get_value()` functions. The coder uses `int()` in checking constraint, but uses `get_value()` in converting our input into the amount of money. And as we can see, `get_value()` naively calculate the ASCII difference from `'0'` of each digit in our input, which could get us an unexpectedly high result if our digits contain any non-numeric character with ASCII value larger than `'0'`. Furthermore, this character should be accepted and convertable by `int()` (the value should also be smaller than 69). Attempts with stuffs like `'0.0000001'` or `'0x0000001'` could not yield result, so I abandon the problem for a while. Briefly after, the challenge author releases a hint showing a link to Python's document about `int` function. I had visited this link before, but had not pinpoint the exploitable part. However, upon the second visit, I paid more attention to the details in the documentation. 
 
 First we should notice that in the source, the version specification is indicated as `#!/usr/bin/env python3.6`. This tells us some hint about this version, so I paid attention on changes made on `int()` documented. Here, we can see:
 
 `Changed in version 3.6: Grouping digits with underscores as in code literals is allowed.`
 
-More exploration on this topic reveals that we can pass into `int()` a string with alternative underscores like `1_2_3`, which would be interpreted as `123`. Underscore character also has a much higher value than `'0'`. Therefore, we have finally come to a possible solution. We would just need to craft something like `0_0_0_0_0_6_9`, which would be accepted by `int()` and upon winning, would gain us a really large value enough to buy the flag.
+More exploration on this topic reveals that we can pass into `int()` a string with alternative underscores like `1_2_3`, which would be interpreted as `123`. Underscore character also has a much higher ASCII value than `'0'`. And thus there is, a possible solution. We would just need to craft something like `0_0_0_0_0_6_9`, which would be accepted by `int()` and upon winning, would gain us a really large value enough to buy the flag.
 
-Although we just need to win to gain enough money, in some cases we may be unfortunate enough to lose all money before winning once. Thus, a script could be convenient to accomodate this.
+Although we just need to win once to gain enough money, in some cases we may be unfortunate enough to lose all money before even winning. Thus, a script could be convenient to accomodate this.
 
 ```python
 from pwn import *
@@ -946,7 +948,7 @@ r.send(payload+b"\n")
 print(r.recv().decode())
 ```
 
-To be honest, without the helpful debugging message throughout the program, I would have much more difficulty complete this problem since my understanding of program stacks was still limited at the moment.
+To be honest, the helpful debugging message throughout the program does help a lot as it is intended for beginners.
 
 Flag: `efiensctf{rop_4gain_and_ag4in_and_aga1n}`
 
