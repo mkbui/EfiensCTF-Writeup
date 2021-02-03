@@ -29,8 +29,9 @@ The following tables lists out the challenges I solved during the contest time. 
 | Pwn     | [Lottery](#lottery)   |
 | Pwn     | [Luck](#luck)         |
 | Pwn     | [ROP](#rop)           |
+| Pwn	  | [Fixbonacci](#fixbonacci) |
 
-Note that this list only contains problem that I solved, which do not include every problem hosted.
+Note that this list only contains problem that I solved, which does not include every problem hosted.
 
 
 ## ROT1000
@@ -683,7 +684,7 @@ This time, we are given a Windows executable file. This is pretty neat for me si
 
 Upon inspecting, I realized the actual main concentration is just a short piece of code used to check our password at the start of `_main`, which requires neither the remaining complicated operation in the function itself, or execution from other functions written in the program. Hence, our task is much simpler than initially expected.
 
-Here is the excerpt of the code in `_main` that I focused on, as dissassembled from Ghidra:
+Here is the excerpt of the code in `_main` that I focused on, as dissassembled by Ghidra:
 ```c
   // ... initialization of variables
   piStack24 = &_Argc;
@@ -750,15 +751,15 @@ Here is the excerpt of the code in `_main` that I focused on, as dissassembled f
   //... complicated operations
 ```
  
-The program first takes our input string as `local_90`, and first check if the length of it is equal to `0x24 = 36` or not. Then runs the exact password check of our input string. First, it will use `piVar13` and `piVar14` to initialize the upper half of the 72-element array `aiStack432` with the data from `.data`. Previously, I was stuck at this point since I do not really know how you can determine this data. The solution is actually really simple - in Ghidra, you can click on the piece of variable `&.data` and will be redirected to the allocation of its elements in the program memory.
+The program first takes our input string as `local_90`, and checks if the length of it is equal to `0x24 = 36` or not. The next procedure initializes the upper half of the 72-element array `aiStack432` with the data from `.data`. Previously, I was stuck at this point since I do not really know how you can determine this data. The solution is actually really simple - in Ghidra, you can click on the piece of variable `&.data` and will be redirected to the allocation of its elements in the program memory.
 
 ![lock2](./img/lock2.png)
 
-As seen from the user view, the data located in `.data` were initialized and aligned by 4 in the memory, starting from `00405020`. The array from `.data` will thus be a series of hex integer `[08, 1C, 0D, 1D, 21, ...]` spanning a total of 36 distinct elements from 0 to 35. Thus, we can populate the upper half of `aiStack432`, which is essential in checking the passoword later on - which is the next loop. 
+As seen from the user view, the data located in `.data` were initialized and aligned by 4 in the memory, starting from `00405020`. The array from `.data` will thus be a series of hex integer `[08, 1C, 0D, 1D, 21, ...]` spanning a total of 36 distinct elements in range [0, 35]. Thus, we can populate the upper half of `aiStack432`, which is essential in checking the password in the next loop. 
 
-In this loop, the program will populate the lower half of `aiStack432`, from index 0 to index 35, with a certain characters from of supplied input string `local_90`. The index of each character is determined by the respective data located in the upper half of `aiStack432` - hence, we can see that `.data` serves as a kind of permutation parameter for our input. After this operation is completed, the input string will be rearranged according to the respective index denoted in the program `.data`. 
+In this loop, the program will populate the lower half of `aiStack432`, from index 0 to index 35, with a certain characters from our supplied input string `local_90`. The index of each character is determined by the respective data located in the upper half of `aiStack432` - hence, we can see that `.data` serves as a kind of permutation parameter for our input. After this operation is completed, the input string will be permutated according to the respective index denoted in the program `.data`. 
 
-Moving on to the third operation, it is visible that a new array `aiStack468` is initialized from the lower half of `aiStack432`. From the code, we can intepret the operation as a reverse concatenation of each 4-consecutive-element block from `aiStack432` to form a new 4-byte hex integer in `aiStack468` (for example, a block of [0x01, 0x02, 0x03, 0x04] will become [0x04030201] in the new array). Finally, the new 9-element array will be compared to each of the 9 elements initialized from the base address of `local_1f8`. If all of them match, the password passes the check and the program prints `Correct`. Else, we are encouraged to try harder next time (a classic hint from CTF challenges). Either way, the process exits right after so there is indeed no need of checking the latter operations at all.
+Moving on to the third operation, it is visible that a new array `aiStack468` is initialized from the lower half of `aiStack432`. From the code, we can interpret the operation as a reverse concatenation of each 4-consecutive-element block from `aiStack432` to form a new 4-byte hex integer in `aiStack468` (for example, a block of [0x01, 0x02, 0x03, 0x04] will become [0x04030201] in the new array). Finally, this new 9-element array will be compared to each of the 9 elements initialized from the base address of `local_1f8`. If all of them match, the password passes the check and the program prints `Correct`. Else, we are encouraged to try harder next time (a classic hint from CTF challenges). Either way, the process exits right after so there is indeed no need of checking the latter operations at all.
 
 With full knowledge of how the password checking procedure works, we compile a simple script to reverse the flow and retreat the intended password, which also turns out to be the flag.
 
@@ -775,13 +776,13 @@ local_1dc = 0x6f307767;
 local_1d8 = 0x765f7274;
 """
 
-# reverse allocate the check integer to the corresponding 36-element in the lower half of `aiStack432`
+# reverse allocate the check integers to the corresponding 36-element in the lower half of `aiStack432`
 a432 = __import__('functools').reduce(lambda lst, x: lst + [x[-j:][:2] for j in range(8, 0, -2)][::-1], s.split(";"), [])[:-4]
 
 # .data extracted from the program memory
 data = [0x8, 0x1c, 0x0d, 0x1d, 0x21, 0x19, 0x1f, 0x13, 0x9, 0x6, 0x15, 0x18, 0x11, 0x0, 0x12, 0x17, 0x22, 0x0e, 0x4, 0x1, 0x1b, 0x1a, 0x5, 0x0f, 0x3, 0x2, 0x0a, 0x23, 0x10, 0x0c, 0x0b, 0x1e, 0x7, 0x16, 0x14, 0x20]
 
-# reverse permutation to obtain the correct order of the characters in password
+# reverse permutation to obtain the correct order of the password
 flag = ['']*36
 for j in range(36):
   flag[data[j]] = chr(int(a432[j], 16))
@@ -800,12 +801,11 @@ As the challenge title suggested, we are greeted with a new executable architect
 
 `arm_not_easy: ELF 32-bit LSB executable, ARM, EABI5 version 1 (SYSV), dynamically linked, interpreter /lib/ld-linux.so.3, BuildID[sha1]=375a9121f38eee3e44d91d1e6f2f7af9d01d3bc2, for GNU/Linux 3.2.0, stripped`
 
-At the time of solving the challenge, I had not been able to execute an ARM architecture file on my computer yet. However, I still try to fire it up in Ghidra and see how it could help. Ghidra is able to identify the file structure and perform decompilation to produce the pseudocode, which in this case is enough to walkthrough the challenge without actually running it. Upon loading the program, we first investigate the entry point of the program. It first calls `UndefinedFunction_00010c20`, which does the interaction with user by asking for our name, our lucky number, and our password, respectively. It then calls `FUN_000105e0` to check if our lucky number is valid, and if it passes, `FUN_00010768` will be called to perform password - and also flag - checking. 
+Although I was not able to execute the file on my computer due to its architecture, a disassembler proved to be enough to statically analyze the binary and find the flag. Ghidra is able to identify the file structure and perform decompilation to produce the pseudocode in C. Upon loading the program, we start investigating the entry point. It first calls `UndefinedFunction_00010c20`, which interacts with user by asking for our name, our lucky number, and our password, respectively. It then calls `FUN_000105e0` to check if our lucky number is valid, and if it passes, `FUN_00010768` will be called to perform password - and also flag - checking. 
 
-Long story short, upon inspecting, we can see `FUN_000105e0` will check if our our lucky number (as a decimal) has an even number of digits, and the sum of the digits on the two half is equal (thus, numbers like `1230` or `11` will pass the check). However, this is not actually necessary since we can statically analyze the password check function and determine the flag without even bypassing the lucky number check anyhow.
+Long story short, upon inspecting, we can see `FUN_000105e0` will check if our our lucky number (as a decimal) has an even number of digits, and the sum of the digits on the two half is equal (thus, numbers like `1230` or `11` will pass the check). However, as this function is independent from the password check, it is overall not actually necessary since we can analyze the password check function and determine the flag without even passing the lucky test.
 
-```c
-
+```c	
 char * FUN_00010768(char *param_1)
 
 {
@@ -915,7 +915,7 @@ char * FUN_00010768(char *param_1)
 }
 ```
 
-Now, as we view `FUN_00010768`, some important information immediately surfaces. We can see the appearance of strings like `kn0w`, `d0`, `y0u`, and `@rm`, which does suggest to be parts of the flag. The first procedure can be seen as a `strtok` utility to partition our input string into smaller strings, separated by a delimiter element which is specified by `local_74`. Since `local_74[0]`'s value is `0x2d`, corresponding to the ASCII encoding of character `-`, we know that our string is partitioned using the hyphen character. The next operation allocates splitted parts into an array in `local_c4`. We then arrive at the password check, where each element in `local_c4` will be compared to the specified string. Although the flow of the check looks complicated, we can just simply focus on the `strcmp` operation at each check, and can easily determine that `@rm`, `d0`, `y0u`, `kn0w` must lie in the 0, 1, 2, and 3 numbered index of `local_c4`, respectively. Combining with the previous usage of `strtok`, we can determine that our input password must be `@rm-d0-y0u-kn0w-`. I have also written a simple C [program](./re/arm-is-not-easy/arm-test.c) patched from the Ghidra pseudocode (by defining `uint` and removing `__stach_chk_` related variables) to check the password validity, and it did nicely pass.
+Now, as we view `FUN_00010768`, some important information quickly surfaces. We can see the appearance of strings like `kn0w`, `d0`, `y0u`, and `@rm`, which does suggest to be parts of the flag. The first procedure can be seen as a `strtok` utility to partition our input string into smaller strings, separated by a delimiter element which is specified by `local_74`. Since `local_74[0]`'s value is `0x2d`, corresponding to the ASCII encoding of character `-`, we know that our string is partitioned using the hyphen character. The next operation allocates splitted parts into an array in `local_c4`. We then arrive at the password check, where each element in `local_c4` will be compared to the specified string. Although the flow of the check looks complicated, we can just simply focus on the `strcmp` operation at each check, and can easily determine that `@rm`, `d0`, `y0u`, `kn0w` must lie in the 0, 1, 2, and 3 numbered index of `local_c4`, respectively. Combining with the previous usage of `strtok`, we can determine that our input password must be `@rm-d0-y0u-kn0w-`. I have also slightly modified the pseudocode (by defining `uint` and removing `__stach_chk` related variables) to create a simple C [program](./re/arm-is-not-easy/arm-run.c) resembling the binary, which does accept our input as the correct password.
 
 Hence, we obtain our flag as printed from the program, `efiensctf{@rm-d0-y0u-kn0w-}`.
 
@@ -1263,37 +1263,37 @@ int main()
 }
 ```
 
-The program has a `checkFlag` function, which upon a simple `gdb` inspection, is detected to lie at address `0x8049256`. The program also calls a `check` function, which is neat as it provides opportunity for us to ROP and jump to our desired address. Upon more inspection, we can detect this program has enabled `Stack CANARY`. This is a mechanism to avoid buffer overflow attack by placing a check variable just before the return pointer address. Thus, if we try to input the index at `10`, which is right after the initialized array `A[10]`, the following error will be raised
+The program has a `getFlag` function, which lies at address `0x8049256`. The program also calls a `check` function, which is neat as it provides opportunity for us to ROP and jump to our desired address. Upon more inspection, we can detect this program has enabled `Stack Canary`. This is a mechanism to avoid buffer overflow attack by placing a check variable just before the return pointer address. Thus, if we try to input the index at `10`, which is right after the initialized array `A[10]` and before main return pointer, the following error will be raised
 
 `*** stack smashing detected ***: terminated`
 
-This signals the activation of Stack Canary before the `ret` instruction in main, essentially preventing us from from ROPing with buffer overflow. But could it actually prevent the exploit in this case? As we can see, the program does not take our input as a buffer, but rather as a `scanf` that will only write to one memory slot as a 4-byte integer (with format `%d`) no matter how large our supplied input is (this shall only trigger an integer overflow). Therefore, we can actually write to any arbitrary index other than `10` in order to bypass the check. Moreover, since the `check` program return address is used before `main` return address, we can overwrite the input to manipulate `check` without even concerning the Canary at all.
+This signals the activation of Stack Canary before the `ret` instruction in main, essentially preventing us from from ROPing with buffer overflow. But could it actually prevent the exploit in this case? As we can see, the program does not take our input as a buffer, but rather as a `scanf` that will only write to one memory slot as a 4-byte integer (with format `%d`) no matter how large our supplied input is (it shall only trigger an integer overflow). Therefore, we can actually write to any arbitrary index other than `10` in order to bypass the check. Moreover, since the `check` program return address is used before `main` return address, we can overwrite the input to manipulate `check` without even concerning the Canary at all.
 
-We now attempt to determine the index address that `check` will use to allocate its return pointer address. As I had quite limited knowledge in stack layout, the quickest way is by using `gdb` and placing a break point at `check` to observe where its actual return address lie in the stack.
+We now attempt to determine the index address that `check` will use to allocate its return pointer address. As I had quite limited knowledge in stack layout, the quickest way is by using `gdb` and placing a break point at `check` to observe where its actual return address lies in the stack.
 
-`
+```
 gdb fixbonacci
 break *check
 r
 > 9\n55\n
 x/32x $sp
-`
+```
 
-This series of `gdb` debugging command will help us find out the address of `check`'s `ESP`. First, we place a checkpoint at the start (or just anywhere in the function) of `check`. Executing the program and supply the input, we will arrive at the breakpoint. 
+This series of `gdb` debugging command will help us find out the address of `check`'s `$ESP`. First, we place a checkpoint at the start of `check`. Executing the program and supply the input, we will arrive at the breakpoint. 
 
 ![fix1](./img/fix1.png)
 
-`gdb-peda` helps us view a nice layout of the registers, which also shows the address of return pointer `$ESP` at `0x8049480`(we could still do this without `gdb-peda`, by observing the instruction layout in `main` at the time it call `<check>`). Now, we view the stack layout of the program by using command `x/32x $sp`, which shows the hex value of the stack pointer layout of the first 32 registers. 
+`gdb-peda` helps us view a nice layout of the registers, which also shows the address of return pointer `$ESP` at `0x8049480`(we could still do this without `gdb-peda`, by observing the instruction layout in `main` when it calls `<check>`). Now, we view the stack layout of the program by using command `x/32x $sp`, which shows the hex value of the stack pointer layout of the first 32 registers. 
 
 ![fix2](./img/fix2.png)
 
-We can see the value `0x8049480` nicely resides at the start, 10 registers away from the first element of the fixbonacci array (which is located at `0xffffd0d4` with value 1). Therefore, our expected index input should be `-10`. The rest of the task is simple, as we need to convert the value of `checkFlag` address into integer and supply into the next input. This will cause `check` to return to `checkFlag` and essentially hand us the secret.
+We can see the value `0x8049480` nicely resides at the start, 10 registers away from the first element of the fixbonacci array (which is located at `0xffffd0d4` with value 1). Therefore, our expected index input should be `-10`. The rest of the task is simple, as we need to convert the value of `getFlag` address into integer and supply into the next input. This will cause `check` to return to `getFlag` and essentially hand us the secret.
 
 `
 python3 -c "print('-10\n' + str(int('0x8049256', 16)))" | nc 128.199.234.122 4100 
 `
 
-At the time of writeup, the server had been shutdown - therefore the actual flag is not known. By replacing the remote with `./fixbonacci`, it is locally confirmed to cat our flag.
+At the time of writeup, the server had been shutdown - therefore the actual flag is not known. By replacing the remote with `./fixbonacci`, the exploit can be tested and confirmed locally.
 
 
 # References
@@ -1308,3 +1308,5 @@ At the time of writeup, the server had been shutdown - therefore the actual flag
 [5] Nguyễn Thành Nam, *Nghệ thuật tận dụng lỗi phần mềm*
 
 [6] Miscellaneous resources on the Internet
+
+[7] Tutorialspoint, C library function - strtok, http://www.cplusplus.com/reference/cstring/strtok/
